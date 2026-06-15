@@ -1,6 +1,5 @@
 public enum CharacterGender
 {
-    Masculine,
-    Feminine,
-    Androgynous
+    Male,
+    Female
 }

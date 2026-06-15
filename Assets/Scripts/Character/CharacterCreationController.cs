@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 [DisallowMultipleComponent]
 public class CharacterCreationController : MonoBehaviour
@@ -10,8 +11,8 @@ public class CharacterCreationController : MonoBehaviour
     [SerializeField] SpriteRenderer playerBodyRenderer = null;
     [SerializeField] SpriteRenderer playerWeaponRenderer = null;
 
-    string characterName = "Aria";
-    int genderIndex = 2;
+    string characterName = "Darren Watkins Jr.";
+    int genderIndex;
     int elementIndex;
     int primaryColorIndex;
     int metalColorIndex;
@@ -25,44 +26,67 @@ public class CharacterCreationController : MonoBehaviour
 
     readonly Color[] primaryColors =
     {
+        new Color(0.75f, 0.02f, 0.08f),
+        new Color(1f, 0.45f, 0.05f),
+        new Color(0.95f, 0.86f, 0.05f),
+        new Color(0.55f, 0.95f, 0.35f),
+        new Color(0.08f, 0.42f, 0.16f),
+        new Color(0.45f, 0.95f, 0.88f),
+        new Color(0.02f, 0.28f, 0.78f),
         new Color(0.52f, 0.18f, 0.85f),
-        new Color(0.1f, 0.45f, 1f),
-        new Color(0.1f, 0.75f, 0.35f),
-        new Color(0.95f, 0.25f, 0.2f),
-        new Color(1f, 0.8f, 0.2f),
-        new Color(0.95f, 0.35f, 0.75f)
+        new Color(0.95f, 0.35f, 0.75f),
+        new Color(1f, 0.52f, 0.64f),
+        new Color(0.38f, 0.2f, 0.08f)
     };
 
     readonly string[] primaryColorNames =
     {
+        "Crimson Red",
+        "Sun Orange",
+        "Piss Yellow",
+        "Meadow Green",
+        "Forest Green",
+        "Seafoam Blue",
+        "Ocean Blue",
         "Royal Purple",
-        "River Blue",
-        "Wild Green",
-        "Ember Red",
-        "Sun Gold",
-        "Rose Pink"
+        "Rosy Pink",
+        "Flamingo Pink",
+        "Poop Brown"
     };
 
     readonly Color[] metalColors =
     {
-        new Color(0.72f, 0.68f, 0.58f),
-        new Color(0.75f, 0.45f, 0.22f),
-        new Color(0.85f, 0.72f, 0.32f),
-        new Color(0.48f, 0.55f, 0.62f),
-        new Color(0.22f, 0.22f, 0.26f)
+        new Color(0.75f, 0.02f, 0.08f),
+        new Color(1f, 0.45f, 0.05f),
+        new Color(0.95f, 0.86f, 0.05f),
+        new Color(0.55f, 0.95f, 0.35f),
+        new Color(0.08f, 0.42f, 0.16f),
+        new Color(0.45f, 0.95f, 0.88f),
+        new Color(0.02f, 0.28f, 0.78f),
+        new Color(0.52f, 0.18f, 0.85f),
+        new Color(0.95f, 0.35f, 0.75f),
+        new Color(1f, 0.52f, 0.64f),
+        new Color(0.38f, 0.2f, 0.08f)
     };
 
     readonly string[] metalColorNames =
     {
-        "Iron",
-        "Copper",
-        "Gold",
-        "Steel",
-        "Darksteel"
+        "Crimson Red",
+        "Sun Orange",
+        "Piss Yellow",
+        "Meadow Green",
+        "Forest Green",
+        "Seafoam Blue",
+        "Ocean Blue",
+        "Royal Purple",
+        "Rosy Pink",
+        "Flamingo Pink",
+        "Poop Brown"
     };
 
     void Start()
     {
+        RemoveOldInputEventSystem();
         SetCreationVisible(showOnStart);
     }
 
@@ -95,7 +119,7 @@ public class CharacterCreationController : MonoBehaviour
         DrawChoiceRow("Gender", ref genderIndex, System.Enum.GetNames(typeof(CharacterGender)));
         DrawChoiceRow("Element", ref elementIndex, System.Enum.GetNames(typeof(CharacterElement)));
         DrawChoiceRow("Primary", ref primaryColorIndex, primaryColorNames);
-        DrawChoiceRow("Metal", ref metalColorIndex, metalColorNames);
+        DrawChoiceRow("Secondary", ref metalColorIndex, metalColorNames);
         DrawChoiceRow("Boon", ref boonIndex, System.Enum.GetNames(typeof(CharacterStatType)));
         DrawChoiceRow("Bane", ref baneIndex, System.Enum.GetNames(typeof(CharacterStatType)));
         GUILayout.EndVertical();
@@ -274,5 +298,14 @@ public class CharacterCreationController : MonoBehaviour
         }
 
         return value;
+    }
+
+    void RemoveOldInputEventSystem()
+    {
+        StandaloneInputModule oldInputModule = FindFirstObjectByType<StandaloneInputModule>();
+        if (oldInputModule != null)
+        {
+            Destroy(oldInputModule.gameObject);
+        }
     }
 }

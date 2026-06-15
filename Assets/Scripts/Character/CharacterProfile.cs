@@ -4,8 +4,8 @@ using UnityEngine;
 [Serializable]
 public class CharacterProfile
 {
-    [SerializeField] string characterName = "New Hero";
-    [SerializeField] CharacterGender gender = CharacterGender.Androgynous;
+    [SerializeField] string characterName = "Darren Watkins Jr.";
+    [SerializeField] CharacterGender gender = CharacterGender.Male;
     [SerializeField] CharacterElement startingElement = CharacterElement.Life;
     [SerializeField] Color primaryColor = new Color(0.52f, 0.18f, 0.85f);
     [SerializeField] Color secondaryMetalColor = new Color(0.72f, 0.68f, 0.58f);
@@ -30,7 +30,7 @@ public class CharacterProfile
         CharacterStatType boon,
         CharacterStatType bane)
     {
-        this.characterName = string.IsNullOrWhiteSpace(characterName) ? "New Hero" : characterName.Trim();
+        this.characterName = string.IsNullOrWhiteSpace(characterName) ? "Darren Watkins Jr." : characterName.Trim();
         this.gender = gender;
         this.startingElement = startingElement;
         this.primaryColor = primaryColor;
