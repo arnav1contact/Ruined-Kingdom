@@ -523,6 +523,17 @@ public enum WeaponType
     Axe
 }
 
+public enum WeaponRank
+{
+    None,
+    E,
+    D,
+    C,
+    B,
+    A,
+    S
+}
+
 [DisallowMultipleComponent]
 public class PlayerInventoryHudController : MonoBehaviour
 {
@@ -531,6 +542,13 @@ public class PlayerInventoryHudController : MonoBehaviour
     [SerializeField] WeaponType[] hotbar = new WeaponType[8];
     [SerializeField] WeaponType[] inventory = new WeaponType[20];
     [SerializeField] int selectedHotbarIndex;
+    [SerializeField] int level = 11;
+    [SerializeField] float experience = 0f;
+    [SerializeField] float experienceToNextLevel = 100f;
+    [SerializeField] int pixicoins = 250;
+    [SerializeField] WeaponRank swordRank = WeaponRank.None;
+    [SerializeField] WeaponRank lanceRank = WeaponRank.None;
+    [SerializeField] WeaponRank axeRank = WeaponRank.None;
 
     bool inventoryOpen;
     WeaponType heldItem;
@@ -589,7 +607,9 @@ public class PlayerInventoryHudController : MonoBehaviour
     void OnGUI()
     {
         DrawResourceBars();
+        DrawPixicoins();
         DrawHotbar();
+        DrawExperienceBar();
 
         if (inventoryOpen)
         {
@@ -614,13 +634,27 @@ public class PlayerInventoryHudController : MonoBehaviour
             hotbar[0] = WeaponType.Sword;
             hotbar[1] = WeaponType.Lance;
             hotbar[2] = WeaponType.Axe;
+            swordRank = WeaponRank.E;
         }
     }
 
     void DrawResourceBars()
     {
-        DrawBar(new Rect(18f, Screen.height - 104f, 220f, 22f), "HP", health == null ? 0f : health.HealthPercent, new Color(0.86f, 0.08f, 0.1f));
-        DrawBar(new Rect(18f, Screen.height - 76f, 220f, 22f), "STA", stamina == null ? 0f : stamina.StaminaPercent, new Color(0.1f, 0.5f, 1f));
+        DrawBar(new Rect(18f, Screen.height - 132f, 220f, 22f), "HP", health == null ? 0f : health.HealthPercent, new Color(0.86f, 0.08f, 0.1f));
+        DrawBar(new Rect(18f, Screen.height - 104f, 220f, 22f), "STA", stamina == null ? 0f : stamina.StaminaPercent, new Color(0.1f, 0.5f, 1f));
+    }
+
+    void DrawExperienceBar()
+    {
+        float slotSize = 52f;
+        float totalWidth = hotbar.Length * slotSize;
+        float startX = (Screen.width - totalWidth) * 0.5f;
+        DrawBar(new Rect(startX, Screen.height - 74f, totalWidth, 14f), $"LV {level} EXP", experienceToNextLevel <= 0f ? 0f : experience / experienceToNextLevel, new Color(0.35f, 0.9f, 0.35f));
+    }
+
+    void DrawPixicoins()
+    {
+        GUI.Box(new Rect(Screen.width - 170f, 16f, 150f, 32f), $"Pixicoins: {pixicoins}");
     }
 
     void DrawBar(Rect rect, string label, float percent, Color fillColor)
@@ -657,13 +691,16 @@ public class PlayerInventoryHudController : MonoBehaviour
     {
         Rect panel = new Rect(Screen.width * 0.5f - 260f, Screen.height * 0.5f - 190f, 520f, 380f);
         GUI.Box(panel, "Inventory");
+        GUI.Label(new Rect(panel.x + 20f, panel.y + 28f, 240f, 24f), $"Pixicoins: {pixicoins}");
+        GUI.Label(new Rect(panel.x + 300f, panel.y + 28f, 180f, 24f), $"Level {level}  EXP {experience:0}/{experienceToNextLevel:0}");
+        GUI.Label(new Rect(panel.x + 300f, panel.y + 54f, 180f, 24f), $"Ranks  Sword:{swordRank} Lance:{lanceRank} Axe:{axeRank}");
 
         if (heldItem != WeaponType.None)
         {
-            GUI.Label(new Rect(panel.x + 20f, panel.y + 32f, 220f, 24f), $"Holding: {heldItem}");
+            GUI.Label(new Rect(panel.x + 20f, panel.y + 54f, 220f, 24f), $"Holding: {heldItem}");
         }
 
-        DrawInventoryGrid(panel.x + 42f, panel.y + 70f);
+        DrawInventoryGrid(panel.x + 42f, panel.y + 88f);
     }
 
     void DrawInventoryGrid(float startX, float startY)
@@ -715,6 +752,43 @@ public class PlayerInventoryHudController : MonoBehaviour
         if (inventoryOpen)
         {
             Time.timeScale = 1f;
+        }
+    }
+
+    public void ApplyStartingClass(CharacterClass characterClass)
+    {
+        InitializeDefaultItems();
+
+        for (int i = 0; i < hotbar.Length; i++)
+        {
+            hotbar[i] = WeaponType.None;
+        }
+
+        swordRank = WeaponRank.None;
+        lanceRank = WeaponRank.None;
+        axeRank = WeaponRank.None;
+
+        WeaponType startingWeapon = characterClass switch
+        {
+            CharacterClass.Knight => WeaponType.Lance,
+            CharacterClass.Brute => WeaponType.Axe,
+            _ => WeaponType.Sword
+        };
+
+        hotbar[0] = startingWeapon;
+        selectedHotbarIndex = 0;
+
+        switch (startingWeapon)
+        {
+            case WeaponType.Lance:
+                lanceRank = WeaponRank.E;
+                break;
+            case WeaponType.Axe:
+                axeRank = WeaponRank.E;
+                break;
+            default:
+                swordRank = WeaponRank.E;
+                break;
         }
     }
 }

@@ -11,6 +11,7 @@ public class CharacterProfile
     [SerializeField] Color secondaryMetalColor = new Color(0.72f, 0.68f, 0.58f);
     [SerializeField] CharacterStatType boon = CharacterStatType.Strength;
     [SerializeField] CharacterStatType bane = CharacterStatType.Resistance;
+    [SerializeField] CharacterClass startingClass = CharacterClass.Mercenary;
 
     public string CharacterName => characterName;
     public CharacterGender Gender => gender;
@@ -20,6 +21,7 @@ public class CharacterProfile
     public Color SecondaryMetalColor => secondaryMetalColor;
     public CharacterStatType Boon => boon;
     public CharacterStatType Bane => bane;
+    public CharacterClass StartingClass => startingClass;
 
     public CharacterProfile(
         string characterName,
@@ -28,7 +30,8 @@ public class CharacterProfile
         Color primaryColor,
         Color secondaryMetalColor,
         CharacterStatType boon,
-        CharacterStatType bane)
+        CharacterStatType bane,
+        CharacterClass startingClass)
     {
         this.characterName = string.IsNullOrWhiteSpace(characterName) ? "Darren Watkins Jr." : characterName.Trim();
         this.gender = gender;
@@ -37,5 +40,13 @@ public class CharacterProfile
         this.secondaryMetalColor = secondaryMetalColor;
         this.boon = boon;
         this.bane = bane;
+        this.startingClass = startingClass;
     }
+}
+
+public enum CharacterClass
+{
+    Mercenary,
+    Knight,
+    Brute
 }

@@ -22,6 +22,7 @@ public static class CharacterCreationPrototypeBuilder
         creatorObjectSerialized.FindProperty("gameplayRoot").objectReferenceValue = gameplayRoot;
         creatorObjectSerialized.FindProperty("playerMovement").objectReferenceValue = player == null ? null : player.GetComponent<PlayerMovementController>();
         creatorObjectSerialized.FindProperty("playerCombat").objectReferenceValue = player == null ? null : player.GetComponent<PlayerCombatController>();
+        creatorObjectSerialized.FindProperty("playerInventory").objectReferenceValue = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
         creatorObjectSerialized.FindProperty("playerBodyRenderer").objectReferenceValue = player == null ? null : player.GetComponent<SpriteRenderer>();
         creatorObjectSerialized.FindProperty("playerWeaponRenderer").objectReferenceValue = FindPlayerWeaponRenderer(player);
         creatorObjectSerialized.ApplyModifiedProperties();

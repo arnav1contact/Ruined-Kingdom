@@ -87,6 +87,7 @@ public static class MovementPrototypeSceneBuilder
         inventoryObject.FindProperty("health").objectReferenceValue = health;
         inventoryObject.FindProperty("stamina").objectReferenceValue = stamina;
         inventoryObject.ApplyModifiedProperties();
+        inventory.ApplyStartingClass(CharacterClass.Mercenary);
 
         PlayerCombatController combat = GetOrAddComponent<PlayerCombatController>(player);
         ConfigureWeapon(player.transform, "Sword Weapon", new Color(0.9f, 0.9f, 1f), 25, out Transform playerWeaponPivot, out Transform playerWeaponBlade, out SpriteRenderer playerWeaponRenderer);

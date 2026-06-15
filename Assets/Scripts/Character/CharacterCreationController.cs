@@ -8,6 +8,7 @@ public class CharacterCreationController : MonoBehaviour
     [SerializeField] GameObject gameplayRoot = null;
     [SerializeField] PlayerMovementController playerMovement = null;
     [SerializeField] PlayerCombatController playerCombat = null;
+    [SerializeField] PlayerInventoryHudController playerInventory = null;
     [SerializeField] SpriteRenderer playerBodyRenderer = null;
     [SerializeField] SpriteRenderer playerWeaponRenderer = null;
 
@@ -18,6 +19,7 @@ public class CharacterCreationController : MonoBehaviour
     int metalColorIndex;
     int boonIndex = 1;
     int baneIndex = 6;
+    int classIndex;
     bool isCreating;
 
     GUIStyle titleStyle;
@@ -56,37 +58,28 @@ public class CharacterCreationController : MonoBehaviour
 
     readonly Color[] metalColors =
     {
-        new Color(0.75f, 0.02f, 0.08f),
-        new Color(1f, 0.45f, 0.05f),
-        new Color(0.95f, 0.86f, 0.05f),
-        new Color(0.55f, 0.95f, 0.35f),
-        new Color(0.08f, 0.42f, 0.16f),
-        new Color(0.45f, 0.95f, 0.88f),
-        new Color(0.02f, 0.28f, 0.78f),
-        new Color(0.52f, 0.18f, 0.85f),
-        new Color(0.95f, 0.35f, 0.75f),
-        new Color(1f, 0.52f, 0.64f),
-        new Color(0.38f, 0.2f, 0.08f)
+        new Color(0.72f, 0.38f, 0.18f),
+        new Color(0.72f, 0.68f, 0.58f),
+        new Color(0.95f, 0.74f, 0.2f),
+        new Color(0.04f, 0.04f, 0.055f),
+        new Color(0.45f, 0.45f, 0.45f),
+        new Color(0.55f, 0.22f, 0.95f)
     };
 
     readonly string[] metalColorNames =
     {
-        "Crimson Red",
-        "Sun Orange",
-        "Piss Yellow",
-        "Meadow Green",
-        "Forest Green",
-        "Seafoam Blue",
-        "Ocean Blue",
-        "Royal Purple",
-        "Rosy Pink",
-        "Flamingo Pink",
-        "Poop Brown"
+        "Copper",
+        "Iron",
+        "Gold",
+        "Titanium",
+        "Basalt",
+        "Wonderite"
     };
 
     void Start()
     {
         RemoveOldInputEventSystem();
+        RandomizeStartingOptions();
         SetCreationVisible(showOnStart);
     }
 
@@ -120,6 +113,7 @@ public class CharacterCreationController : MonoBehaviour
         DrawChoiceRow("Element", ref elementIndex, System.Enum.GetNames(typeof(CharacterElement)));
         DrawChoiceRow("Primary", ref primaryColorIndex, primaryColorNames);
         DrawChoiceRow("Secondary", ref metalColorIndex, metalColorNames);
+        DrawChoiceRow("Class", ref classIndex, System.Enum.GetNames(typeof(CharacterClass)));
         DrawChoiceRow("Boon", ref boonIndex, System.Enum.GetNames(typeof(CharacterStatType)));
         DrawChoiceRow("Bane", ref baneIndex, System.Enum.GetNames(typeof(CharacterStatType)));
         GUILayout.EndVertical();
@@ -222,6 +216,8 @@ public class CharacterCreationController : MonoBehaviour
         GUILayout.Space(8f);
         GUILayout.Label($"Element: {element}", labelStyle);
         GUILayout.Label($"Future mastery: {mastery}", labelStyle);
+        GUILayout.Label($"Class: {(CharacterClass)classIndex}", labelStyle);
+        GUILayout.Label($"Starting weapon: {GetStartingWeapon((CharacterClass)classIndex)}", labelStyle);
         GUILayout.Label($"Boon: {(CharacterStatType)boonIndex}", labelStyle);
         GUILayout.Label($"Bane: {(CharacterStatType)baneIndex}", labelStyle);
 
@@ -249,7 +245,8 @@ public class CharacterCreationController : MonoBehaviour
             primaryColors[primaryColorIndex],
             metalColors[metalColorIndex],
             (CharacterStatType)boonIndex,
-            (CharacterStatType)baneIndex);
+            (CharacterStatType)baneIndex,
+            (CharacterClass)classIndex);
     }
 
     void ApplyProfileToPlayer(CharacterProfile profile)
@@ -262,6 +259,11 @@ public class CharacterCreationController : MonoBehaviour
         if (playerWeaponRenderer != null)
         {
             playerWeaponRenderer.color = profile.SecondaryMetalColor;
+        }
+
+        if (playerInventory != null)
+        {
+            playerInventory.ApplyStartingClass(profile.StartingClass);
         }
     }
 
@@ -282,6 +284,11 @@ public class CharacterCreationController : MonoBehaviour
         if (playerCombat != null)
         {
             playerCombat.enabled = !visible;
+        }
+
+        if (playerInventory != null)
+        {
+            playerInventory.enabled = !visible;
         }
     }
 
@@ -307,5 +314,31 @@ public class CharacterCreationController : MonoBehaviour
         {
             Destroy(oldInputModule.gameObject);
         }
+    }
+
+    void RandomizeStartingOptions()
+    {
+        genderIndex = Random.Range(0, System.Enum.GetValues(typeof(CharacterGender)).Length);
+        elementIndex = Random.Range(0, System.Enum.GetValues(typeof(CharacterElement)).Length);
+        primaryColorIndex = Random.Range(0, primaryColors.Length);
+        metalColorIndex = Random.Range(0, metalColors.Length);
+        classIndex = Random.Range(0, System.Enum.GetValues(typeof(CharacterClass)).Length);
+        boonIndex = Random.Range(0, System.Enum.GetValues(typeof(CharacterStatType)).Length);
+        baneIndex = Random.Range(0, System.Enum.GetValues(typeof(CharacterStatType)).Length);
+
+        if (baneIndex == boonIndex)
+        {
+            baneIndex = WrapIndex(baneIndex + 1, System.Enum.GetValues(typeof(CharacterStatType)).Length);
+        }
+    }
+
+    WeaponType GetStartingWeapon(CharacterClass characterClass)
+    {
+        return characterClass switch
+        {
+            CharacterClass.Knight => WeaponType.Lance,
+            CharacterClass.Brute => WeaponType.Axe,
+            _ => WeaponType.Sword
+        };
     }
 }
