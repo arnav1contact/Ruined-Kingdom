@@ -82,6 +82,12 @@ public static class MovementPrototypeSceneBuilder
         staminaObject.FindProperty("regenerationDelayAfterSpend").floatValue = 0.45f;
         staminaObject.ApplyModifiedProperties();
 
+        PlayerInventoryHudController inventory = GetOrAddComponent<PlayerInventoryHudController>(player);
+        SerializedObject inventoryObject = new SerializedObject(inventory);
+        inventoryObject.FindProperty("health").objectReferenceValue = health;
+        inventoryObject.FindProperty("stamina").objectReferenceValue = stamina;
+        inventoryObject.ApplyModifiedProperties();
+
         PlayerCombatController combat = GetOrAddComponent<PlayerCombatController>(player);
         ConfigureWeapon(player.transform, "Sword Weapon", new Color(0.9f, 0.9f, 1f), 25, out Transform playerWeaponPivot, out Transform playerWeaponBlade, out SpriteRenderer playerWeaponRenderer);
 
@@ -89,6 +95,7 @@ public static class MovementPrototypeSceneBuilder
         combatObject.FindProperty("movementController").objectReferenceValue = movement;
         combatObject.FindProperty("health").objectReferenceValue = health;
         combatObject.FindProperty("stamina").objectReferenceValue = stamina;
+        combatObject.FindProperty("inventory").objectReferenceValue = inventory;
         combatObject.FindProperty("attackAction").objectReferenceValue = attackReference;
         combatObject.FindProperty("weaponPivot").objectReferenceValue = playerWeaponPivot;
         combatObject.FindProperty("weaponBlade").objectReferenceValue = playerWeaponBlade;
@@ -116,8 +123,8 @@ public static class MovementPrototypeSceneBuilder
         combatObject.ApplyModifiedProperties();
 
         ConfigureFacingIndicator(player.transform, movement);
-        ConfigureResourceBar(player.transform, "Health Bar", new Vector3(0f, 0.82f, 0f), new Color(0.9f, 0.1f, 0.12f), health, null, WorldResourceBar2D.ResourceType.Health);
-        ConfigureResourceBar(player.transform, "Stamina Bar", new Vector3(0f, 0.64f, 0f), new Color(0.1f, 0.55f, 1f), null, stamina, WorldResourceBar2D.ResourceType.Stamina);
+        DestroyChildIfExists(player.transform, "Health Bar");
+        DestroyChildIfExists(player.transform, "Stamina Bar");
 
         return player;
     }
@@ -173,7 +180,7 @@ public static class MovementPrototypeSceneBuilder
         spriteRenderer.sortingOrder = 10;
 
         Rigidbody2D rb = GetOrAddComponent<Rigidbody2D>(enemy);
-        rb.bodyType = RigidbodyType2D.Dynamic;
+        rb.bodyType = RigidbodyType2D.Kinematic;
         rb.gravityScale = 0f;
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
@@ -393,6 +400,15 @@ public static class MovementPrototypeSceneBuilder
         child.transform.SetParent(parent);
         child.transform.localPosition = localPosition;
         return child;
+    }
+
+    static void DestroyChildIfExists(Transform parent, string name)
+    {
+        Transform existing = parent.Find(name);
+        if (existing != null)
+        {
+            Object.DestroyImmediate(existing.gameObject);
+        }
     }
 
     static T GetOrAddComponent<T>(GameObject gameObject) where T : Component

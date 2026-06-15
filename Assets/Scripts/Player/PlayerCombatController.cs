@@ -10,6 +10,7 @@ public class PlayerCombatController : MonoBehaviour
     [SerializeField] PlayerMovementController movementController = null;
     [SerializeField] HealthComponent health = null;
     [SerializeField] StaminaComponent stamina = null;
+    [SerializeField] PlayerInventoryHudController inventory = null;
     [SerializeField] InputActionReference attackAction = null;
     [SerializeField] Transform weaponPivot = null;
     [SerializeField] Transform weaponBlade = null;
@@ -53,6 +54,7 @@ public class PlayerCombatController : MonoBehaviour
     [SerializeField] string currentAction = "None";
     [SerializeField] bool actionBusy;
     [SerializeField] bool isCharging;
+    [SerializeField] bool isCrouching;
 
     Rigidbody2D rb;
     Vector3 originalScale;
@@ -63,6 +65,7 @@ public class PlayerCombatController : MonoBehaviour
 
     public bool IsActionBusy => actionBusy;
     public bool IsCharging => isCharging;
+    public bool IsCrouching => isCrouching;
     public string CurrentAction => currentAction;
 
     void Awake()
@@ -82,6 +85,11 @@ public class PlayerCombatController : MonoBehaviour
         if (stamina == null)
         {
             stamina = GetComponent<StaminaComponent>();
+        }
+
+        if (inventory == null)
+        {
+            inventory = GetComponent<PlayerInventoryHudController>();
         }
 
         originalScale = transform.localScale;
@@ -106,6 +114,7 @@ public class PlayerCombatController : MonoBehaviour
     void Update()
     {
         UpdateWeaponPose();
+        isCrouching = IsCrouchHeld();
 
         if (actionBusy)
         {
@@ -124,11 +133,11 @@ public class PlayerCombatController : MonoBehaviour
         }
         else if (WasStrongAttackPressed())
         {
-            TryStartSwordAttack("Strong Attack", strongDamage, strongStaminaCost, strongCooldown, 0.24f, strongHitboxSize, Color.red);
+            TryStartWeaponAttack(CreateAttackProfile(true, isCrouching));
         }
         else if (WasLightAttackPressed())
         {
-            TryStartSwordAttack("Light Attack", lightDamage, lightStaminaCost, lightCooldown, 0.14f, lightHitboxSize, Color.white);
+            TryStartWeaponAttack(CreateAttackProfile(false, isCrouching));
         }
     }
 
@@ -234,33 +243,90 @@ public class PlayerCombatController : MonoBehaviour
         return Gamepad.current != null && Gamepad.current.rightTrigger.wasReleasedThisFrame;
     }
 
+    bool IsCrouchHeld()
+    {
+        return Keyboard.current != null && Keyboard.current.xKey.isPressed
+            || Gamepad.current != null && Gamepad.current.leftStickButton.isPressed;
+    }
+
+    AttackProfile CreateAttackProfile(bool strong, bool crouching)
+    {
+        WeaponType weapon = inventory == null ? WeaponType.Sword : inventory.SelectedWeapon;
+        if (weapon == WeaponType.None)
+        {
+            weapon = WeaponType.Sword;
+        }
+
+        return weapon switch
+        {
+            WeaponType.Lance => CreateLanceProfile(strong, crouching),
+            WeaponType.Axe => CreateAxeProfile(strong, crouching),
+            _ => CreateSwordProfile(strong, crouching)
+        };
+    }
+
+    AttackProfile CreateSwordProfile(bool strong, bool crouching)
+    {
+        if (crouching)
+        {
+            return new AttackProfile(strong ? "Crouch Sword Strong Poke" : "Crouch Sword Light Poke", strong ? 30f : 16f, strong ? 24f : 10f, strong ? 0.55f : 0.25f, strong ? 0.22f : 0.1f, new Vector2(strong ? 1.45f : 1.15f, 0.34f), strong ? 1f : 0.9f, strong ? Color.red : Color.white, strong ? 1.35f : 1.15f);
+        }
+
+        return new AttackProfile(strong ? "Sword Strong Slash" : "Sword Light Slash", strong ? strongDamage : lightDamage, strong ? strongStaminaCost : lightStaminaCost, strong ? strongCooldown : lightCooldown, strong ? 0.24f : 0.14f, strong ? strongHitboxSize : lightHitboxSize, 0.85f, strong ? Color.red : Color.white, strong ? 1.25f : 1.1f);
+    }
+
+    AttackProfile CreateLanceProfile(bool strong, bool crouching)
+    {
+        if (crouching)
+        {
+            return new AttackProfile(strong ? "Crouch Lance Brace" : "Crouch Lance Jab", strong ? 34f : 18f, strong ? 24f : 10f, strong ? 0.62f : 0.3f, strong ? 0.28f : 0.12f, new Vector2(strong ? 2.2f : 1.75f, 0.3f), strong ? 1.45f : 1.25f, new Color(0.65f, 0.9f, 1f), strong ? 1.8f : 1.55f);
+        }
+
+        return new AttackProfile(strong ? "Lance Heavy Thrust" : "Lance Thrust", strong ? 38f : 20f, strong ? 30f : 13f, strong ? 0.72f : 0.36f, strong ? 0.32f : 0.16f, new Vector2(strong ? 2.25f : 1.8f, 0.36f), strong ? 1.45f : 1.25f, new Color(0.65f, 0.9f, 1f), strong ? 1.9f : 1.6f);
+    }
+
+    AttackProfile CreateAxeProfile(bool strong, bool crouching)
+    {
+        if (crouching)
+        {
+            return new AttackProfile(strong ? "Crouch Axe Chop" : "Crouch Axe Hook", strong ? 48f : 24f, strong ? 34f : 16f, strong ? 0.9f : 0.5f, strong ? 0.45f : 0.24f, new Vector2(strong ? 1.55f : 1.15f, strong ? 1f : 0.75f), 0.75f, new Color(1f, 0.45f, 0.15f), strong ? 1.35f : 1.1f);
+        }
+
+        return new AttackProfile(strong ? "Axe Heavy Swing" : "Axe Swing", strong ? 62f : 30f, strong ? 42f : 20f, strong ? 1.05f : 0.58f, strong ? 0.5f : 0.28f, new Vector2(strong ? 1.75f : 1.35f, strong ? 1.15f : 0.9f), 0.7f, new Color(1f, 0.45f, 0.15f), strong ? 1.4f : 1.15f);
+    }
+
     void TryStartSwordAttack(string actionName, float damage, float staminaCost, float cooldown, float windup, Vector2 hitboxSize, Color weaponColor)
+    {
+        TryStartWeaponAttack(new AttackProfile(actionName, damage, staminaCost, cooldown, windup, hitboxSize, hitboxForwardOffset, weaponColor, 1.25f));
+    }
+
+    void TryStartWeaponAttack(AttackProfile profile)
     {
         if (Time.time < nextAttackTime)
         {
             return;
         }
 
-        if (stamina != null && !stamina.TrySpend(staminaCost))
+        if (stamina != null && !stamina.TrySpend(profile.StaminaCost))
         {
             return;
         }
 
-        nextAttackTime = Time.time + cooldown;
-        StartCoroutine(SwordAttackRoutine(actionName, damage, windup, hitboxSize, weaponColor));
+        nextAttackTime = Time.time + profile.Cooldown;
+        StartCoroutine(WeaponAttackRoutine(profile));
     }
 
-    IEnumerator SwordAttackRoutine(string actionName, float damage, float windup, Vector2 hitboxSize, Color weaponColor)
+    IEnumerator WeaponAttackRoutine(AttackProfile profile)
     {
         actionBusy = true;
-        currentAction = actionName;
+        currentAction = profile.Name;
         movementController?.SetMovementSuppressed(true);
-        SetWeaponColor(weaponColor);
-        SetWeaponReach(1.25f);
+        SetWeaponColor(profile.Color);
+        SetWeaponReach(profile.ReachScale);
 
-        yield return new WaitForSeconds(windup);
+        yield return new WaitForSeconds(profile.Windup);
 
-        HitWithSword(damage, hitboxSize);
+        HitWithWeapon(profile.Damage, profile.HitboxSize, profile.ForwardOffset);
 
         yield return new WaitForSeconds(0.08f);
 
@@ -344,10 +410,10 @@ public class PlayerCombatController : MonoBehaviour
         actionBusy = false;
     }
 
-    void HitWithSword(float damage, Vector2 hitboxSize)
+    void HitWithWeapon(float damage, Vector2 hitboxSize, float forwardOffset)
     {
         Vector2 direction = GetFacingDirection();
-        Vector2 center = (Vector2)transform.position + direction * hitboxForwardOffset;
+        Vector2 center = (Vector2)transform.position + direction * forwardOffset;
         float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         Collider2D[] hits = Physics2D.OverlapBoxAll(center, hitboxSize, angle, hitLayers);
 
@@ -406,6 +472,32 @@ public class PlayerCombatController : MonoBehaviour
         }
     }
 
+    readonly struct AttackProfile
+    {
+        public readonly string Name;
+        public readonly float Damage;
+        public readonly float StaminaCost;
+        public readonly float Cooldown;
+        public readonly float Windup;
+        public readonly Vector2 HitboxSize;
+        public readonly float ForwardOffset;
+        public readonly Color Color;
+        public readonly float ReachScale;
+
+        public AttackProfile(string name, float damage, float staminaCost, float cooldown, float windup, Vector2 hitboxSize, float forwardOffset, Color color, float reachScale)
+        {
+            Name = name;
+            Damage = damage;
+            StaminaCost = staminaCost;
+            Cooldown = cooldown;
+            Windup = windup;
+            HitboxSize = hitboxSize;
+            ForwardOffset = forwardOffset;
+            Color = color;
+            ReachScale = reachScale;
+        }
+    }
+
     void SetWeaponColor(Color color)
     {
         if (weaponRenderer != null)
@@ -420,5 +512,209 @@ public class PlayerCombatController : MonoBehaviour
         Vector2 center = (Vector2)transform.position + direction * hitboxForwardOffset;
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireCube(center, lightHitboxSize);
+    }
+}
+
+public enum WeaponType
+{
+    None,
+    Sword,
+    Lance,
+    Axe
+}
+
+[DisallowMultipleComponent]
+public class PlayerInventoryHudController : MonoBehaviour
+{
+    [SerializeField] HealthComponent health = null;
+    [SerializeField] StaminaComponent stamina = null;
+    [SerializeField] WeaponType[] hotbar = new WeaponType[8];
+    [SerializeField] WeaponType[] inventory = new WeaponType[20];
+    [SerializeField] int selectedHotbarIndex;
+
+    bool inventoryOpen;
+    WeaponType heldItem;
+
+    readonly Key[] hotbarKeys =
+    {
+        Key.Digit1,
+        Key.Digit2,
+        Key.Digit3,
+        Key.Digit4,
+        Key.Digit5,
+        Key.Digit6,
+        Key.Digit7,
+        Key.Digit8
+    };
+
+    public WeaponType SelectedWeapon => hotbar == null || hotbar.Length == 0 ? WeaponType.Sword : hotbar[selectedHotbarIndex];
+
+    void Awake()
+    {
+        if (health == null)
+        {
+            health = GetComponent<HealthComponent>();
+        }
+
+        if (stamina == null)
+        {
+            stamina = GetComponent<StaminaComponent>();
+        }
+
+        InitializeDefaultItems();
+    }
+
+    void Update()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (keyboard.iKey.wasPressedThisFrame || keyboard.tabKey.wasPressedThisFrame)
+        {
+            SetInventoryOpen(!inventoryOpen);
+        }
+
+        for (int i = 0; i < hotbar.Length && i < hotbarKeys.Length; i++)
+        {
+            if (keyboard[hotbarKeys[i]].wasPressedThisFrame)
+            {
+                selectedHotbarIndex = i;
+            }
+        }
+    }
+
+    void OnGUI()
+    {
+        DrawResourceBars();
+        DrawHotbar();
+
+        if (inventoryOpen)
+        {
+            DrawInventory();
+        }
+    }
+
+    void InitializeDefaultItems()
+    {
+        if (hotbar == null || hotbar.Length != 8)
+        {
+            hotbar = new WeaponType[8];
+        }
+
+        if (inventory == null || inventory.Length != 20)
+        {
+            inventory = new WeaponType[20];
+        }
+
+        if (hotbar[0] == WeaponType.None && hotbar[1] == WeaponType.None && hotbar[2] == WeaponType.None)
+        {
+            hotbar[0] = WeaponType.Sword;
+            hotbar[1] = WeaponType.Lance;
+            hotbar[2] = WeaponType.Axe;
+        }
+    }
+
+    void DrawResourceBars()
+    {
+        DrawBar(new Rect(18f, Screen.height - 104f, 220f, 22f), "HP", health == null ? 0f : health.HealthPercent, new Color(0.86f, 0.08f, 0.1f));
+        DrawBar(new Rect(18f, Screen.height - 76f, 220f, 22f), "STA", stamina == null ? 0f : stamina.StaminaPercent, new Color(0.1f, 0.5f, 1f));
+    }
+
+    void DrawBar(Rect rect, string label, float percent, Color fillColor)
+    {
+        GUI.Box(rect, "");
+        Color oldColor = GUI.color;
+        GUI.color = fillColor;
+        GUI.DrawTexture(new Rect(rect.x + 2f, rect.y + 2f, (rect.width - 4f) * Mathf.Clamp01(percent), rect.height - 4f), Texture2D.whiteTexture);
+        GUI.color = oldColor;
+        GUI.Label(new Rect(rect.x + 8f, rect.y + 2f, rect.width - 16f, rect.height), label);
+    }
+
+    void DrawHotbar()
+    {
+        float slotSize = 52f;
+        float totalWidth = hotbar.Length * slotSize;
+        float startX = (Screen.width - totalWidth) * 0.5f;
+        float y = Screen.height - slotSize - 12f;
+
+        for (int i = 0; i < hotbar.Length; i++)
+        {
+            Rect slot = new Rect(startX + i * slotSize, y, slotSize, slotSize);
+            GUI.color = i == selectedHotbarIndex ? new Color(1f, 0.85f, 0.25f) : Color.white;
+            if (GUI.Button(slot, FormatItem(hotbar[i])))
+            {
+                selectedHotbarIndex = i;
+            }
+        }
+
+        GUI.color = Color.white;
+    }
+
+    void DrawInventory()
+    {
+        Rect panel = new Rect(Screen.width * 0.5f - 260f, Screen.height * 0.5f - 190f, 520f, 380f);
+        GUI.Box(panel, "Inventory");
+
+        if (heldItem != WeaponType.None)
+        {
+            GUI.Label(new Rect(panel.x + 20f, panel.y + 32f, 220f, 24f), $"Holding: {heldItem}");
+        }
+
+        DrawInventoryGrid(panel.x + 42f, panel.y + 70f);
+    }
+
+    void DrawInventoryGrid(float startX, float startY)
+    {
+        float slotSize = 58f;
+        for (int i = 0; i < inventory.Length; i++)
+        {
+            int x = i % 5;
+            int y = i / 5;
+            Rect slot = new Rect(startX + x * slotSize, startY + y * slotSize, slotSize, slotSize);
+
+            if (GUI.Button(slot, FormatItem(inventory[i])))
+            {
+                SwapWithHeld(ref inventory[i]);
+            }
+        }
+
+        for (int i = 0; i < hotbar.Length; i++)
+        {
+            Rect slot = new Rect(startX + 320f + i % 4 * slotSize, startY + i / 4 * slotSize, slotSize, slotSize);
+
+            if (GUI.Button(slot, FormatItem(hotbar[i])))
+            {
+                SwapWithHeld(ref hotbar[i]);
+            }
+        }
+    }
+
+    void SwapWithHeld(ref WeaponType slot)
+    {
+        WeaponType oldSlot = slot;
+        slot = heldItem;
+        heldItem = oldSlot;
+    }
+
+    void SetInventoryOpen(bool open)
+    {
+        inventoryOpen = open;
+        Time.timeScale = open ? 0f : 1f;
+    }
+
+    string FormatItem(WeaponType item)
+    {
+        return item == WeaponType.None ? "" : item.ToString();
+    }
+
+    void OnDisable()
+    {
+        if (inventoryOpen)
+        {
+            Time.timeScale = 1f;
+        }
     }
 }
