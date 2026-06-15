@@ -102,7 +102,8 @@ public class CharacterCreationController : MonoBehaviour
 
         GUI.Box(panelRect, "");
 
-        GUILayout.BeginArea(new Rect(panelRect.x + 24f, panelRect.y + 18f, panelRect.width - 48f, panelRect.height - 36f));
+        Rect contentRect = new Rect(panelRect.x + 24f, panelRect.y + 18f, panelRect.width - 48f, panelRect.height - 86f);
+        GUILayout.BeginArea(contentRect);
         GUILayout.Label("Create Your Character", titleStyle);
         GUILayout.Space(12f);
 
@@ -126,18 +127,13 @@ public class CharacterCreationController : MonoBehaviour
         GUILayout.EndVertical();
         GUILayout.EndHorizontal();
 
-        GUILayout.FlexibleSpace();
+        GUILayout.EndArea();
 
-        GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        if (GUILayout.Button("Begin", GUILayout.Width(180f), GUILayout.Height(42f)))
+        Rect beginRect = new Rect(panelRect.xMax - 224f, panelRect.yMax - 58f, 180f, 42f);
+        if (GUI.Button(beginRect, "Begin"))
         {
             ConfirmCharacter();
         }
-        GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-
-        GUILayout.EndArea();
     }
 
     void InitializeStyles()
