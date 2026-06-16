@@ -42,6 +42,7 @@ public static class MovementPrototypeSceneBuilder
         spriteRenderer.sprite = playerSprite;
         spriteRenderer.color = new Color(0.56f, 0.2f, 0.9f);
         spriteRenderer.sortingOrder = 10;
+        spriteRenderer.enabled = false;
 
         Rigidbody2D rb = GetOrAddComponent<Rigidbody2D>(player);
         rb.bodyType = RigidbodyType2D.Dynamic;
@@ -51,8 +52,8 @@ public static class MovementPrototypeSceneBuilder
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
 
         CapsuleCollider2D collider = GetOrAddComponent<CapsuleCollider2D>(player);
-        collider.size = new Vector2(0.75f, 0.75f);
-        collider.offset = Vector2.zero;
+        collider.size = new Vector2(0.52f, 0.32f);
+        collider.offset = new Vector2(0f, -0.28f);
 
         PlayerController2D oldController = player.GetComponent<PlayerController2D>();
         if (oldController != null)
@@ -90,6 +91,7 @@ public static class MovementPrototypeSceneBuilder
         inventory.ApplyStartingClass(CharacterClass.Mercenary);
 
         PlayerCombatController combat = GetOrAddComponent<PlayerCombatController>(player);
+        CharacterVisualApplier visualApplier = ConfigureCharacterVisuals(player.transform, playerSprite);
         ConfigureWeapon(player.transform, "Sword Weapon", new Color(0.9f, 0.9f, 1f), 25, out Transform playerWeaponPivot, out Transform playerWeaponBlade, out SpriteRenderer playerWeaponRenderer);
 
         SerializedObject combatObject = new SerializedObject(combat);
@@ -126,6 +128,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureFacingIndicator(player.transform, movement);
         DestroyChildIfExists(player.transform, "Health Bar");
         DestroyChildIfExists(player.transform, "Stamina Bar");
+        ConfigureYSort(player);
 
         return player;
     }
@@ -179,6 +182,7 @@ public static class MovementPrototypeSceneBuilder
         spriteRenderer.sprite = enemySprite;
         spriteRenderer.color = new Color(0.85f, 0.12f, 0.1f);
         spriteRenderer.sortingOrder = 10;
+        spriteRenderer.enabled = false;
 
         Rigidbody2D rb = GetOrAddComponent<Rigidbody2D>(enemy);
         rb.bodyType = RigidbodyType2D.Kinematic;
@@ -188,8 +192,8 @@ public static class MovementPrototypeSceneBuilder
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
 
         BoxCollider2D collider = GetOrAddComponent<BoxCollider2D>(enemy);
-        collider.size = new Vector2(0.85f, 0.85f);
-        collider.offset = Vector2.zero;
+        collider.size = new Vector2(0.58f, 0.36f);
+        collider.offset = new Vector2(0f, -0.28f);
 
         HealthComponent health = GetOrAddComponent<HealthComponent>(enemy);
         SerializedObject healthObject = new SerializedObject(health);
@@ -200,6 +204,7 @@ public static class MovementPrototypeSceneBuilder
         healthObject.ApplyModifiedProperties();
 
         EnemyCombatController enemyCombat = GetOrAddComponent<EnemyCombatController>(enemy);
+        ConfigureEnemyVisuals(enemy.transform, enemySprite);
         ConfigureWeapon(enemy.transform, "Sword Weapon", new Color(0.95f, 0.7f, 0.6f), 25, out Transform enemyWeaponPivot, out Transform enemyWeaponBlade, out SpriteRenderer enemyWeaponRenderer);
 
         SerializedObject enemyObject = new SerializedObject(enemyCombat);
@@ -216,6 +221,48 @@ public static class MovementPrototypeSceneBuilder
         enemyObject.ApplyModifiedProperties();
 
         ConfigureResourceBar(enemy.transform, "Health Bar", new Vector3(0f, 0.75f, 0f), new Color(0.9f, 0.1f, 0.12f), health, null, WorldResourceBar2D.ResourceType.Health);
+        ConfigureYSort(enemy);
+    }
+
+    static CharacterVisualApplier ConfigureCharacterVisuals(Transform owner, Sprite sprite)
+    {
+        GameObject visuals = GetOrCreateChild(owner, "Visuals", Vector3.zero);
+
+        SpriteRenderer shadow = ConfigureSpriteLayer(visuals.transform, "Shadow", sprite, new Vector3(0f, -0.42f, 0f), new Vector3(0.78f, 0.22f, 1f), new Color(0f, 0f, 0f, 0.32f), 0);
+        SpriteRenderer body = ConfigureSpriteLayer(visuals.transform, "Body Primary", sprite, new Vector3(0f, 0f, 0f), new Vector3(0.78f, 1.05f, 1f), new Color(0.56f, 0.2f, 0.9f), 1);
+        SpriteRenderer armor = ConfigureSpriteLayer(visuals.transform, "Armor Secondary", sprite, new Vector3(0f, 0.08f, 0f), new Vector3(0.9f, 0.42f, 1f), new Color(0.72f, 0.68f, 0.58f), 2);
+        ConfigureSpriteLayer(visuals.transform, "Head Placeholder", sprite, new Vector3(0f, 0.44f, 0f), new Vector3(0.56f, 0.42f, 1f), new Color(0.95f, 0.78f, 0.56f), 3);
+
+        CharacterVisualApplier applier = GetOrAddComponent<CharacterVisualApplier>(visuals);
+        SerializedObject applierObject = new SerializedObject(applier);
+        applierObject.FindProperty("primaryRenderer").objectReferenceValue = body;
+        applierObject.FindProperty("secondaryRenderer").objectReferenceValue = armor;
+        applierObject.FindProperty("weaponRenderer").objectReferenceValue = null;
+        applierObject.ApplyModifiedProperties();
+
+        _ = shadow;
+        return applier;
+    }
+
+    static void ConfigureEnemyVisuals(Transform owner, Sprite sprite)
+    {
+        GameObject visuals = GetOrCreateChild(owner, "Visuals", Vector3.zero);
+
+        ConfigureSpriteLayer(visuals.transform, "Shadow", sprite, new Vector3(0f, -0.42f, 0f), new Vector3(0.78f, 0.22f, 1f), new Color(0f, 0f, 0f, 0.32f), 0);
+        ConfigureSpriteLayer(visuals.transform, "Body", sprite, Vector3.zero, new Vector3(0.82f, 1f, 1f), new Color(0.85f, 0.12f, 0.1f), 1);
+        ConfigureSpriteLayer(visuals.transform, "Face", sprite, new Vector3(0f, 0.34f, 0f), new Vector3(0.46f, 0.24f, 1f), new Color(0.18f, 0.03f, 0.03f), 2);
+    }
+
+    static SpriteRenderer ConfigureSpriteLayer(Transform parent, string name, Sprite sprite, Vector3 localPosition, Vector3 localScale, Color color, int sortingOrder)
+    {
+        GameObject layer = GetOrCreateChild(parent, name, localPosition);
+        layer.transform.localScale = localScale;
+
+        SpriteRenderer renderer = GetOrAddComponent<SpriteRenderer>(layer);
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = sortingOrder;
+        return renderer;
     }
 
     static void ConfigureWeapon(
@@ -239,6 +286,14 @@ public static class MovementPrototypeSceneBuilder
         bladeRenderer.sprite = AssetDatabase.LoadAssetAtPath<Sprite>(TileSpritePath);
         bladeRenderer.color = color;
         bladeRenderer.sortingOrder = sortingOrder;
+
+        CharacterVisualApplier applier = owner.GetComponentInChildren<CharacterVisualApplier>();
+        if (applier != null)
+        {
+            SerializedObject applierObject = new SerializedObject(applier);
+            applierObject.FindProperty("weaponRenderer").objectReferenceValue = bladeRenderer;
+            applierObject.ApplyModifiedProperties();
+        }
     }
 
     static void ConfigureResourceBar(
@@ -300,6 +355,22 @@ public static class MovementPrototypeSceneBuilder
         spriteRenderer.sprite = tileSprite;
         spriteRenderer.color = new Color(0.25f, 0.52f, 0.29f);
         spriteRenderer.sortingOrder = -10;
+
+        ConfigureGroundPatch(parent, "Center Dirt Path", tileSprite, Vector3.zero, new Vector3(9f, 1.1f, 1f), new Color(0.48f, 0.34f, 0.18f));
+        ConfigureGroundPatch(parent, "Vertical Dirt Path", tileSprite, Vector3.zero, new Vector3(1.1f, 6.5f, 1f), new Color(0.48f, 0.34f, 0.18f));
+        ConfigureGroundPatch(parent, "Garden Patch NW", tileSprite, new Vector3(-3.5f, 2.2f, 0f), new Vector3(2.4f, 1.3f, 1f), new Color(0.2f, 0.42f, 0.22f));
+        ConfigureGroundPatch(parent, "Garden Patch SE", tileSprite, new Vector3(3.8f, -2.2f, 0f), new Vector3(2.4f, 1.3f, 1f), new Color(0.2f, 0.42f, 0.22f));
+    }
+
+    static void ConfigureGroundPatch(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color)
+    {
+        GameObject patch = GetOrCreateChild(parent, name, position);
+        patch.transform.localScale = scale;
+
+        SpriteRenderer renderer = GetOrAddComponent<SpriteRenderer>(patch);
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = -9;
     }
 
     static void ConfigureWalls(Transform parent, Sprite wallSprite)
@@ -309,6 +380,8 @@ public static class MovementPrototypeSceneBuilder
         ConfigureWall(parent, "West Wall", wallSprite, new Vector3(-6.5f, 0f, 0f), new Vector3(1f, 8f, 1f));
         ConfigureWall(parent, "East Wall", wallSprite, new Vector3(6.5f, 0f, 0f), new Vector3(1f, 8f, 1f));
         ConfigureWall(parent, "Center Block", wallSprite, new Vector3(2f, 0.5f, 0f), new Vector3(2f, 2f, 1f));
+        ConfigureProp(parent, "Tree Placeholder", wallSprite, new Vector3(-3.9f, 1.7f, 0f), new Vector3(1.1f, 1.8f, 1f), new Color(0.08f, 0.35f, 0.12f));
+        ConfigureProp(parent, "Rock Placeholder", wallSprite, new Vector3(3.6f, -1.8f, 0f), new Vector3(1.1f, 0.85f, 1f), new Color(0.38f, 0.38f, 0.42f));
     }
 
     static void ConfigureWall(Transform parent, string name, Sprite wallSprite, Vector3 position, Vector3 scale)
@@ -324,6 +397,29 @@ public static class MovementPrototypeSceneBuilder
         BoxCollider2D collider = GetOrAddComponent<BoxCollider2D>(wall);
         collider.size = Vector2.one;
         collider.offset = Vector2.zero;
+    }
+
+    static void ConfigureProp(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color)
+    {
+        GameObject prop = GetOrCreateChild(parent, name, position);
+        prop.transform.localScale = scale;
+
+        SpriteRenderer renderer = GetOrAddComponent<SpriteRenderer>(prop);
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = 0;
+
+        BoxCollider2D collider = GetOrAddComponent<BoxCollider2D>(prop);
+        collider.size = new Vector2(0.8f, 0.28f);
+        collider.offset = new Vector2(0f, -0.32f);
+
+        ConfigureYSort(prop);
+    }
+
+    static void ConfigureYSort(GameObject target)
+    {
+        YSort2D ySort = GetOrAddComponent<YSort2D>(target);
+        ySort.RefreshRenderers();
     }
 
     static InputActionReference GetOrCreateMoveActionReference()

@@ -9,6 +9,7 @@ public class CharacterCreationController : MonoBehaviour
     [SerializeField] PlayerMovementController playerMovement = null;
     [SerializeField] PlayerCombatController playerCombat = null;
     [SerializeField] PlayerInventoryHudController playerInventory = null;
+    [SerializeField] CharacterVisualApplier visualApplier = null;
     [SerializeField] SpriteRenderer playerBodyRenderer = null;
     [SerializeField] SpriteRenderer playerWeaponRenderer = null;
 
@@ -257,6 +258,11 @@ public class CharacterCreationController : MonoBehaviour
             playerWeaponRenderer.color = profile.SecondaryMetalColor;
         }
 
+        if (visualApplier != null)
+        {
+            visualApplier.ApplyProfile(profile);
+        }
+
         if (playerInventory != null)
         {
             playerInventory.ApplyStartingClass(profile.StartingClass);
@@ -336,5 +342,76 @@ public class CharacterCreationController : MonoBehaviour
             CharacterClass.Brute => WeaponType.Axe,
             _ => WeaponType.Sword
         };
+    }
+}
+
+[DisallowMultipleComponent]
+public class CharacterVisualApplier : MonoBehaviour
+{
+    [SerializeField] SpriteRenderer primaryRenderer = null;
+    [SerializeField] SpriteRenderer secondaryRenderer = null;
+    [SerializeField] SpriteRenderer weaponRenderer = null;
+
+    public SpriteRenderer PrimaryRenderer => primaryRenderer;
+    public SpriteRenderer SecondaryRenderer => secondaryRenderer;
+    public SpriteRenderer WeaponRenderer => weaponRenderer;
+
+    public void ApplyProfile(CharacterProfile profile)
+    {
+        if (profile == null)
+        {
+            return;
+        }
+
+        if (primaryRenderer != null)
+        {
+            primaryRenderer.color = profile.PrimaryColor;
+        }
+
+        if (secondaryRenderer != null)
+        {
+            secondaryRenderer.color = profile.SecondaryMetalColor;
+        }
+
+        if (weaponRenderer != null)
+        {
+            weaponRenderer.color = profile.SecondaryMetalColor;
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class YSort2D : MonoBehaviour
+{
+    [SerializeField] int baseSortingOrder = 1000;
+    [SerializeField] int unitsPerSortingStep = 100;
+    [SerializeField] SpriteRenderer[] renderers = null;
+
+    public void RefreshRenderers()
+    {
+        renderers = GetComponentsInChildren<SpriteRenderer>(true);
+        ApplySortingOrder();
+    }
+
+    void LateUpdate()
+    {
+        ApplySortingOrder();
+    }
+
+    void ApplySortingOrder()
+    {
+        if (renderers == null || renderers.Length == 0)
+        {
+            return;
+        }
+
+        int order = baseSortingOrder - Mathf.RoundToInt(transform.position.y * unitsPerSortingStep);
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] != null)
+            {
+                renderers[i].sortingOrder = order + i;
+            }
+        }
     }
 }
