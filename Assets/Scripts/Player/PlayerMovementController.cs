@@ -194,7 +194,7 @@ public class PlayerInteractionController : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
         bool pressed = keyboard != null && keyboard.eKey.wasPressedThisFrame
-            || gamepad != null && gamepad.buttonSouth.wasPressedThisFrame;
+            || gamepad != null && gamepad.buttonNorth.wasPressedThisFrame;
 
         if (pressed)
         {
@@ -343,7 +343,7 @@ public class DialogueHudController : MonoBehaviour
         GUI.Box(panel, "");
         GUI.Label(new Rect(panel.x + 18f, panel.y + 12f, panel.width - 36f, 26f), speakerName, speakerStyle);
         GUI.Label(new Rect(panel.x + 18f, panel.y + 42f, panel.width - 36f, 54f), lines[lineIndex], bodyStyle);
-        GUI.Label(new Rect(panel.xMax - 160f, panel.yMax - 26f, 140f, 20f), "E / A to continue");
+        GUI.Label(new Rect(panel.xMax - 172f, panel.yMax - 26f, 152f, 20f), "E / Y to continue");
     }
 
     void InitializeStyles()

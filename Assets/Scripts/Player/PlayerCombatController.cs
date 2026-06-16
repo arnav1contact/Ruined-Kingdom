@@ -196,14 +196,14 @@ public class PlayerCombatController : MonoBehaviour
         return attackAction != null && attackAction.action != null && attackAction.action.WasPressedThisFrame()
             || Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame
             || Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame
-            || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
+            || Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame;
     }
 
     bool WasStrongAttackPressed()
     {
         return Keyboard.current != null && Keyboard.current.fKey.wasPressedThisFrame
             || Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame
-            || Gamepad.current != null && Gamepad.current.buttonWest.wasPressedThisFrame;
+            || Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame;
     }
 
     bool WasDodgePressed()
@@ -217,8 +217,8 @@ public class PlayerCombatController : MonoBehaviour
 
     bool WasJumpPressed()
     {
-        return Keyboard.current != null && Keyboard.current.eKey.wasPressedThisFrame
-            || Gamepad.current != null && Gamepad.current.buttonNorth.wasPressedThisFrame;
+        return Keyboard.current != null && Keyboard.current.qKey.wasPressedThisFrame
+            || Gamepad.current != null && Gamepad.current.buttonSouth.wasPressedThisFrame;
     }
 
     bool WasChargePressed()
