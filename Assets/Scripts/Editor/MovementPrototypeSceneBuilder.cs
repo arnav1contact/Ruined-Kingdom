@@ -16,6 +16,8 @@ public static class MovementPrototypeSceneBuilder
     [MenuItem("Tools/Ruined Kingdom/Create Movement Test Room")]
     public static void CreateMovementTestRoom()
     {
+        CleanupObsoletePrototypeObjects();
+
         InputActionReference moveReference = GetOrCreateMoveActionReference();
         InputActionReference attackReference = GetOrCreateInputActionReference("Player/Attack", AttackReferencePath);
         Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlayerSpritePath);
@@ -170,10 +172,43 @@ public static class MovementPrototypeSceneBuilder
 
         PlayerInteractionController interaction = GetOrAddComponent<PlayerInteractionController>(player);
         SerializedObject interactionObject = new SerializedObject(interaction);
-        interactionObject.FindProperty("interactionRange").floatValue = 1.15f;
+        interactionObject.FindProperty("interactionRange").floatValue = 1.85f;
         interactionObject.FindProperty("interactionLayers").intValue = ~0;
         interactionObject.FindProperty("dialogueHud").objectReferenceValue = dialogueHud;
         interactionObject.ApplyModifiedProperties();
+    }
+
+    static void CleanupObsoletePrototypeObjects()
+    {
+        foreach (EnemyCombatController enemy in Object.FindObjectsByType<EnemyCombatController>(FindObjectsSortMode.None))
+        {
+            if (enemy != null)
+            {
+                Object.DestroyImmediate(enemy.gameObject);
+            }
+        }
+
+        string[] obsoleteNames =
+        {
+            "Training Yard Enemy",
+            "Enemy",
+            "Center Block",
+            "Tree Placeholder",
+            "Rock Placeholder",
+            "North Wall",
+            "South Wall",
+            "East Wall",
+            "West Wall"
+        };
+
+        for (int i = 0; i < obsoleteNames.Length; i++)
+        {
+            GameObject existing = GameObject.Find(obsoleteNames[i]);
+            if (existing != null)
+            {
+                Object.DestroyImmediate(existing);
+            }
+        }
     }
 
     static void ConfigureFacingIndicator(Transform player, PlayerMovementController movement)
@@ -464,13 +499,13 @@ public static class MovementPrototypeSceneBuilder
         ConfigureHubPlaza(parent, sprite);
         ConfigureKingdomBuildings(parent, sprite, hubSpawn, hubBounds);
 
-        Transform forestSpawn = ConfigureSpawn(parent, "Forest Approach Spawn", new Vector3(0f, 24.6f, 0f));
+        Transform forestSpawn = ConfigureSpawn(parent, "Forest Approach Spawn", new Vector3(0f, 22.1f, 0f));
         Transform seaSpawn = ConfigureSpawn(parent, "Sea Road Spawn", new Vector3(17.4f, 0f, 0f));
         Transform desertSpawn = ConfigureSpawn(parent, "Desert Gate Spawn", new Vector3(0f, -15.2f, 0f));
         Transform volcanoSpawn = ConfigureSpawn(parent, "Volcano Road Spawn", new Vector3(-17.4f, 0f, 0f));
         Transform ruinsSpawn = ConfigureSpawn(parent, "Old Ruins Spawn", new Vector3(17.4f, 15.2f, 0f));
 
-        CameraAreaBounds2D forestBounds = ConfigureAreaBounds(parent, "Forest Camera Bounds", new Vector2(-10f, 18f), new Vector2(10f, 31f));
+        CameraAreaBounds2D forestBounds = ConfigureAreaBounds(parent, "Forest Camera Bounds", new Vector2(-10f, 18f), new Vector2(10f, 35f));
         CameraAreaBounds2D seaBounds = ConfigureAreaBounds(parent, "Sea Camera Bounds", new Vector2(11f, -5f), new Vector2(24f, 5f));
         CameraAreaBounds2D desertBounds = ConfigureAreaBounds(parent, "Desert Camera Bounds", new Vector2(-7f, -21f), new Vector2(7f, -10f));
         CameraAreaBounds2D volcanoBounds = ConfigureAreaBounds(parent, "Volcano Camera Bounds", new Vector2(-24f, -5f), new Vector2(-11f, 5f));
@@ -537,12 +572,12 @@ public static class MovementPrototypeSceneBuilder
 
     static void ConfigureKingdomBuildings(Transform parent, Sprite sprite, Transform hubSpawn, CameraAreaBounds2D hubBounds)
     {
-        ConfigureBuilding(parent, sprite, "Blacksmith", new Vector3(-7.2f, 5.8f, 0f), new Vector3(3.2f, 2.1f, 1f), new Color(0.25f, 0.22f, 0.2f), new Vector3(42f, 0f, 0f), hubSpawn, hubBounds, "Enter Blacksmith", typeof(WeaponSmithInteractable), "Royal Blacksmith");
-        ConfigureBuilding(parent, sprite, "Adventurer Guild", new Vector3(0f, 5.8f, 0f), new Vector3(3.8f, 2.25f, 1f), new Color(0.32f, 0.28f, 0.42f), new Vector3(52f, 0f, 0f), hubSpawn, hubBounds, "Enter Guild", typeof(QuestBoardInteractable), "Guild Clerk");
-        ConfigureBuilding(parent, sprite, "Healer Hall", new Vector3(7.2f, 5.8f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.55f, 0.75f, 0.82f), new Vector3(62f, 0f, 0f), hubSpawn, hubBounds, "Enter Healer", typeof(HealerServiceInteractable), "Healer");
+        ConfigureBuilding(parent, sprite, "Blacksmith", new Vector3(-9.4f, 5.8f, 0f), new Vector3(3.2f, 2.1f, 1f), new Color(0.25f, 0.22f, 0.2f), new Vector3(42f, 0f, 0f), hubSpawn, hubBounds, "Enter Blacksmith", typeof(WeaponSmithInteractable), "Royal Blacksmith");
+        ConfigureBuilding(parent, sprite, "Adventurer Guild", new Vector3(-4.5f, 5.9f, 0f), new Vector3(3.4f, 2.15f, 1f), new Color(0.32f, 0.28f, 0.42f), new Vector3(52f, 0f, 0f), hubSpawn, hubBounds, "Enter Guild", typeof(QuestBoardInteractable), "Guild Clerk");
+        ConfigureBuilding(parent, sprite, "Healer Hall", new Vector3(8.6f, 5.8f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.55f, 0.75f, 0.82f), new Vector3(62f, 0f, 0f), hubSpawn, hubBounds, "Enter Healer", typeof(HealerServiceInteractable), "Healer");
         ConfigureBuilding(parent, sprite, "Inn", new Vector3(-8.7f, -5.6f, 0f), new Vector3(3.4f, 2.1f, 1f), new Color(0.42f, 0.25f, 0.16f), new Vector3(42f, -10f, 0f), hubSpawn, hubBounds, "Enter Inn", typeof(HubServiceInteractable), "Innkeeper");
         ConfigureBuilding(parent, sprite, "Alchemist", new Vector3(8.7f, -5.6f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.35f, 0.24f, 0.52f), new Vector3(52f, -10f, 0f), hubSpawn, hubBounds, "Enter Alchemist", typeof(HubServiceInteractable), "Alchemist");
-        ConfigureBuilding(parent, sprite, "Town Hall", new Vector3(0f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), hubSpawn, hubBounds, "Enter Town Hall", typeof(HubServiceInteractable), "Steward");
+        ConfigureBuilding(parent, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), hubSpawn, hubBounds, "Enter Town Hall", typeof(HubServiceInteractable), "Steward");
         ConfigureBuilding(parent, sprite, "Armory", new Vector3(-13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.22f, 0.24f, 0.28f), new Vector3(42f, -20f, 0f), hubSpawn, hubBounds, "Enter Armory", typeof(HubServiceInteractable), "Armorer");
         ConfigureBuilding(parent, sprite, "Storehouse", new Vector3(13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.46f, 0.32f, 0.18f), new Vector3(52f, -20f, 0f), hubSpawn, hubBounds, "Enter Storehouse", typeof(HubServiceInteractable), "Quartermaster");
 
@@ -637,24 +672,26 @@ public static class MovementPrototypeSceneBuilder
 
     static void ConfigureForestFirstArea(Transform parent, Sprite sprite, Transform player)
     {
-        Vector3 center = new Vector3(0f, 25f, 0f);
-        ConfigureGroundPatch(parent, "Forest Outskirts Ground", sprite, center, new Vector3(16f, 9f, 1f), new Color(0.12f, 0.42f, 0.18f));
-        ConfigureGroundPatch(parent, "Forest Outskirts Path", sprite, center + new Vector3(0f, -1.8f, 0f), new Vector3(3.6f, 6f, 1f), new Color(0.42f, 0.31f, 0.18f));
+        Vector3 center = new Vector3(0f, 26f, 0f);
+        ConfigureGroundPatch(parent, "Forest Outskirts Ground", sprite, center, new Vector3(17f, 14f, 1f), new Color(0.12f, 0.42f, 0.18f));
+        ConfigureGroundPatch(parent, "Forest Walkthrough Path", sprite, center + new Vector3(0f, 0.1f, 0f), new Vector3(3.8f, 12f, 1f), new Color(0.42f, 0.31f, 0.18f));
+        ConfigureGroundPatch(parent, "Forest Clearing", sprite, center + new Vector3(0f, 4.8f, 0f), new Vector3(8.8f, 3.8f, 1f), new Color(0.15f, 0.38f, 0.18f));
 
-        ConfigureSimpleInteractable(parent, "Forest Ranger", sprite, center + new Vector3(-3.2f, -1.1f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.36f, 0.72f, 0.28f), "Forest Ranger", "Talk", new[]
+        ConfigureSimpleInteractable(parent, "Forest Ranger", sprite, center + new Vector3(-3.2f, -4.1f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.36f, 0.72f, 0.28f), "Forest Ranger", "Talk", new[]
         {
-            "The outskirts are calm, but the woods past the marker twist around themselves.",
+            "This first stretch is only the forest entrance.",
+            "Walk north to the old stump marker, then enter the Lost Woods minigame from there.",
             "Choose left or right. Good choices move you deeper. Bad choices send you back."
         }, true);
 
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 28; i++)
         {
-            float x = i % 2 == 0 ? Random.Range(-7f, -4f) : Random.Range(4f, 7f);
-            float y = Random.Range(21.2f, 29.1f);
+            float x = i % 2 == 0 ? Random.Range(-7.3f, -3.2f) : Random.Range(3.2f, 7.3f);
+            float y = Random.Range(20.1f, 32.7f);
             ConfigureProp(parent, $"Forest Outskirts Tree {i + 1}", sprite, new Vector3(x, y, 0f), new Vector3(1.05f, 1.75f, 1f), new Color(0.03f, 0.24f, 0.08f));
         }
 
-        ConfigureSimpleInteractable(parent, "Forest Outskirts Chest", sprite, center + new Vector3(3.4f, -2.5f, 0f), new Vector3(0.75f, 0.55f, 1f), new Color(0.45f, 0.25f, 0.1f), "Forest Chest", "Open", null, true);
+        ConfigureSimpleInteractable(parent, "Forest Outskirts Chest", sprite, center + new Vector3(3.7f, -3.5f, 0f), new Vector3(0.75f, 0.55f, 1f), new Color(0.45f, 0.25f, 0.1f), "Forest Chest", "Open", null, true);
         ForestLootChestInteractable outskirtsChest = GetOrAddComponent<ForestLootChestInteractable>(GameObject.Find("Forest Outskirts Chest"));
         SerializedObject outskirtsChestObject = new SerializedObject(outskirtsChest);
         SetSerializedStringIfPresent(outskirtsChestObject, "displayName", "Forest Chest");
@@ -674,7 +711,7 @@ public static class MovementPrototypeSceneBuilder
         Transform spawn = ConfigureSpawn(dungeon.transform, "Lost Woods Player Spawn", new Vector3(0f, -2.8f, 0f));
         CameraAreaBounds2D bounds = ConfigureAreaBounds(parent, "Lost Woods Camera Bounds", new Vector2(-6f, 38f), new Vector2(6f, 46f));
 
-        GameObject entranceMarker = ConfigureSimpleInteractable(parent, "Lost Woods Entrance", sprite, new Vector3(0f, 28.7f, 0f), new Vector3(1f, 1f, 1f), new Color(0.08f, 0.18f, 0.08f), "Lost Woods", "Enter", new[] { "Enter the shifting woods." }, true);
+        GameObject entranceMarker = ConfigureSimpleInteractable(parent, "Lost Woods Entrance", sprite, new Vector3(0f, 32.2f, 0f), new Vector3(2.1f, 1.35f, 1f), new Color(0.08f, 0.18f, 0.08f), "Lost Woods", "Enter Dungeon", new[] { "Enter the shifting woods." }, false);
         LostWoodsEntranceInteractable entrance = GetOrAddComponent<LostWoodsEntranceInteractable>(entranceMarker);
 
         GameObject leftGate = ConfigureSimpleInteractable(dungeon.transform, "Left Woods Path", sprite, new Vector3(-3.3f, 2.8f, 0f), new Vector3(1.05f, 1f, 1f), new Color(0.04f, 0.2f, 0.08f), "Left Path", "Choose Left", null, true);
@@ -892,7 +929,7 @@ public static class MovementPrototypeSceneBuilder
 
     static void ConfigureGate(Transform parent, string name, Sprite sprite, Vector3 position, Transform destination, CameraAreaBounds2D destinationBounds, string displayName, string prompt, string arrivalMessage)
     {
-        GameObject gate = ConfigureSimpleInteractable(parent, name, sprite, position, new Vector3(0.95f, 0.95f, 1f), new Color(0.2f, 0.12f, 0.32f), displayName, prompt, new[]
+        GameObject gate = ConfigureSimpleInteractable(parent, name, sprite, position, new Vector3(1.85f, 1.25f, 1f), new Color(0.74f, 0.58f, 0.18f), displayName, prompt, new[]
         {
             $"Travel through {displayName}?"
         }, false);

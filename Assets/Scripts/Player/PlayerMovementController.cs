@@ -170,7 +170,7 @@ public class PlayerMovementController : MonoBehaviour
 [DisallowMultipleComponent]
 public class PlayerInteractionController : MonoBehaviour
 {
-    [SerializeField] float interactionRange = 1.05f;
+    [SerializeField] float interactionRange = 1.65f;
     [SerializeField] LayerMask interactionLayers = ~0;
     [SerializeField] SimpleInteractable currentInteractable = null;
     [SerializeField] DialogueHudController dialogueHud = null;
@@ -189,11 +189,11 @@ public class PlayerInteractionController : MonoBehaviour
 
     void Update()
     {
-        RefreshCurrentInteractable();
+        RefreshCurrentInteractable(interactionRange);
 
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
-        bool pressed = keyboard != null && keyboard.eKey.wasPressedThisFrame
+        bool pressed = keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.rKey.wasPressedThisFrame)
             || gamepad != null && gamepad.buttonNorth.wasPressedThisFrame;
 
         if (pressed)
@@ -204,7 +204,13 @@ public class PlayerInteractionController : MonoBehaviour
                 return;
             }
 
-            currentInteractable?.Interact(this);
+            SimpleInteractable interactable = currentInteractable;
+            if (interactable == null)
+            {
+                interactable = FindNearestInteractable(interactionRange + 1f);
+            }
+
+            interactable?.Interact(this);
         }
     }
 
@@ -227,7 +233,12 @@ public class PlayerInteractionController : MonoBehaviour
         }
     }
 
-    void RefreshCurrentInteractable()
+    void RefreshCurrentInteractable(float range)
+    {
+        currentInteractable = FindNearestInteractable(range);
+    }
+
+    SimpleInteractable FindNearestInteractable(float range)
     {
         ContactFilter2D filter = new ContactFilter2D
         {
@@ -236,7 +247,7 @@ public class PlayerInteractionController : MonoBehaviour
             useTriggers = true
         };
 
-        int hitCount = Physics2D.OverlapCircle(transform.position, interactionRange, filter, interactionHits);
+        int hitCount = Physics2D.OverlapCircle(transform.position, range, filter, interactionHits);
         SimpleInteractable nearest = null;
         float nearestDistance = float.MaxValue;
 
@@ -254,7 +265,7 @@ public class PlayerInteractionController : MonoBehaviour
                 continue;
             }
 
-            float distance = Vector2.SqrMagnitude(interactable.transform.position - transform.position);
+            float distance = Vector2.SqrMagnitude(hit.ClosestPoint(transform.position) - (Vector2)transform.position);
             if (distance < nearestDistance)
             {
                 nearest = interactable;
@@ -262,7 +273,7 @@ public class PlayerInteractionController : MonoBehaviour
             }
         }
 
-        currentInteractable = nearest;
+        return nearest;
     }
 
     SimpleInteractable FindBestInteractable(Collider2D hit)
