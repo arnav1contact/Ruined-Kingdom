@@ -12,6 +12,66 @@ public static class MovementPrototypeSceneBuilder
     const string AttackReferencePath = "Assets/RuinedKingdom/Input/PlayerAttack.inputactionreference.asset";
     const string PlayerSpritePath = "Assets/Sprites/Player.png";
     const string TileSpritePath = "Assets/Tiles/GrassSquare.png";
+    const string KingdomScenePath = "Assets/Scenes/Kingdom.unity";
+    const string ForestScenePath = "Assets/Scenes/Forest.unity";
+
+    [MenuItem("Tools/Ruined Kingdom/Create Prototype Scene Set")]
+    public static void CreatePrototypeSceneSet()
+    {
+        CreateKingdomScene();
+        CreateForestScene();
+        ConfigureBuildSettings();
+        EditorSceneManager.OpenScene(KingdomScenePath);
+    }
+
+    [MenuItem("Tools/Ruined Kingdom/Create Kingdom Scene")]
+    public static void CreateKingdomScene()
+    {
+        InputActionReference moveReference = GetOrCreateMoveActionReference();
+        InputActionReference attackReference = GetOrCreateInputActionReference("Player/Attack", AttackReferencePath);
+        Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlayerSpritePath);
+        Sprite tileSprite = AssetDatabase.LoadAssetAtPath<Sprite>(TileSpritePath);
+
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        GameObject root = GetOrCreateGameObject("Kingdom Scene", Vector3.zero);
+        GameObject player = ConfigurePlayer(playerSprite, moveReference, attackReference);
+        player.name = "Player";
+        player.transform.position = new Vector3(0f, -2.2f, 0f);
+
+        ConfigureCamera(player.transform);
+        ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
+        ConfigureKingdomScene(root.transform, tileSprite, player);
+        ConfigureCharacterCreationForScene(player, root);
+
+        EnsureScenesFolder();
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), KingdomScenePath);
+        ConfigureBuildSettings();
+        Selection.activeGameObject = player;
+    }
+
+    [MenuItem("Tools/Ruined Kingdom/Create Forest Scene")]
+    public static void CreateForestScene()
+    {
+        InputActionReference moveReference = GetOrCreateMoveActionReference();
+        InputActionReference attackReference = GetOrCreateInputActionReference("Player/Attack", AttackReferencePath);
+        Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlayerSpritePath);
+        Sprite tileSprite = AssetDatabase.LoadAssetAtPath<Sprite>(TileSpritePath);
+
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+        GameObject root = GetOrCreateGameObject("Forest Scene", Vector3.zero);
+        GameObject player = ConfigurePlayer(playerSprite, moveReference, attackReference);
+        player.name = "Player";
+        player.transform.position = new Vector3(0f, -5f, 0f);
+
+        ConfigureCamera(player.transform);
+        ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
+        ConfigureForestScene(root.transform, tileSprite, player);
+
+        EnsureScenesFolder();
+        EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ForestScenePath);
+        ConfigureBuildSettings();
+        Selection.activeGameObject = player;
+    }
 
     [MenuItem("Tools/Ruined Kingdom/Create Movement Test Room")]
     public static void CreateMovementTestRoom()
@@ -183,6 +243,133 @@ public static class MovementPrototypeSceneBuilder
         interactionObject.FindProperty("interactionLayers").intValue = ~0;
         interactionObject.FindProperty("dialogueHud").objectReferenceValue = dialogueHud;
         interactionObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureKingdomScene(Transform root, Sprite sprite, GameObject player)
+    {
+        ConfigureSpawn(root, "Kingdom Player Spawn", new Vector3(0f, -2.2f, 0f));
+        CameraAreaBounds2D hubBounds = ConfigureAreaBounds(root, "Kingdom Camera Bounds", new Vector2(-18f, -11f), new Vector2(18f, 11f));
+        hubBounds.ApplyTo(Camera.main == null ? null : Camera.main.GetComponent<CameraFollow2D>());
+
+        ConfigureGroundPatch(root, "Kingdom Grass", sprite, Vector3.zero, new Vector3(40f, 24f, 1f), new Color(0.25f, 0.52f, 0.29f));
+        ConfigureGroundPatch(root, "Central Plaza", sprite, Vector3.zero, new Vector3(9.5f, 5.2f, 1f), new Color(0.36f, 0.35f, 0.32f));
+        ConfigureGroundPatch(root, "North Road", sprite, new Vector3(0f, 7.2f, 0f), new Vector3(1.8f, 9f, 1f), new Color(0.48f, 0.34f, 0.18f));
+        ConfigureGroundPatch(root, "South Road", sprite, new Vector3(0f, -7.2f, 0f), new Vector3(1.8f, 9f, 1f), new Color(0.48f, 0.34f, 0.18f));
+        ConfigureGroundPatch(root, "East Road", sprite, new Vector3(9f, -0.2f, 0f), new Vector3(17f, 1.35f, 1f), new Color(0.48f, 0.34f, 0.18f));
+        ConfigureGroundPatch(root, "West Road", sprite, new Vector3(-9f, -0.2f, 0f), new Vector3(17f, 1.35f, 1f), new Color(0.48f, 0.34f, 0.18f));
+
+        ConfigureWall(root, "Kingdom North Wall West", sprite, new Vector3(-11.8f, 11.8f, 0f), new Vector3(17f, 0.7f, 1f));
+        ConfigureWall(root, "Kingdom North Wall East", sprite, new Vector3(11.8f, 11.8f, 0f), new Vector3(17f, 0.7f, 1f));
+        ConfigureWall(root, "Kingdom South Wall", sprite, new Vector3(0f, -11.8f, 0f), new Vector3(40f, 0.7f, 1f));
+        ConfigureWall(root, "Kingdom West Wall", sprite, new Vector3(-20f, 0f, 0f), new Vector3(0.7f, 23f, 1f));
+        ConfigureWall(root, "Kingdom East Wall", sprite, new Vector3(20f, 0f, 0f), new Vector3(0.7f, 23f, 1f));
+
+        ConfigureBuilding(root, sprite, "Blacksmith", new Vector3(-9.4f, 5.8f, 0f), new Vector3(3.2f, 2.1f, 1f), new Color(0.25f, 0.22f, 0.2f), new Vector3(42f, 0f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Blacksmith", typeof(WeaponSmithInteractable), "Royal Blacksmith");
+        ConfigureBuilding(root, sprite, "Adventurer Guild", new Vector3(-4.5f, 5.9f, 0f), new Vector3(3.4f, 2.15f, 1f), new Color(0.32f, 0.28f, 0.42f), new Vector3(52f, 0f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Guild", typeof(QuestBoardInteractable), "Guild Clerk");
+        ConfigureBuilding(root, sprite, "Healer Hall", new Vector3(8.6f, 5.8f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.55f, 0.75f, 0.82f), new Vector3(62f, 0f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Healer", typeof(HealerServiceInteractable), "Healer");
+        ConfigureBuilding(root, sprite, "Inn", new Vector3(-8.7f, -5.6f, 0f), new Vector3(3.4f, 2.1f, 1f), new Color(0.42f, 0.25f, 0.16f), new Vector3(42f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Inn", typeof(HubServiceInteractable), "Innkeeper");
+        ConfigureBuilding(root, sprite, "Alchemist", new Vector3(8.7f, -5.6f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.35f, 0.24f, 0.52f), new Vector3(52f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Alchemist", typeof(HubServiceInteractable), "Alchemist");
+        ConfigureBuilding(root, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Town Hall", typeof(HubServiceInteractable), "Steward");
+        ConfigureBuilding(root, sprite, "Armory", new Vector3(-13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.22f, 0.24f, 0.28f), new Vector3(42f, -20f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Armory", typeof(HubServiceInteractable), "Armorer");
+        ConfigureBuilding(root, sprite, "Storehouse", new Vector3(13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.46f, 0.32f, 0.18f), new Vector3(52f, -20f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Storehouse", typeof(HubServiceInteractable), "Quartermaster");
+
+        ConfigureHubService(root, "Healer Shrine", sprite, new Vector3(4.75f, -1.65f, 0f), new Vector3(0.9f, 0.9f, 1f), new Color(0.7f, 0.95f, 1f), "Healer Shrine", "Recover", typeof(HealerServiceInteractable));
+        ConfigureTrainingDummy(root, sprite, new Vector3(6.15f, -1.95f, 0f));
+
+        ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
+        ConfigureSimpleInteractable(root, "Kingdom Guard", sprite, new Vector3(-2.4f, 8.7f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.35f, 0.45f, 0.85f), "Gate Guard", "Talk", new[]
+        {
+            "The forest is a separate scene now. Use the gold gate marker north of town.",
+            "No enemies should appear inside the kingdom."
+        }, true);
+    }
+
+    static void ConfigureForestScene(Transform root, Sprite sprite, GameObject player)
+    {
+        ConfigureSpawn(root, "Forest Entry Spawn", new Vector3(0f, -5.2f, 0f));
+        CameraAreaBounds2D forestBounds = ConfigureAreaBounds(root, "Forest Camera Bounds", new Vector2(-10f, -7f), new Vector2(10f, 9f));
+        forestBounds.ApplyTo(Camera.main == null ? null : Camera.main.GetComponent<CameraFollow2D>());
+
+        ConfigureGroundPatch(root, "Forest Floor", sprite, Vector3.zero, new Vector3(20f, 16f, 1f), new Color(0.1f, 0.36f, 0.16f));
+        ConfigureGroundPatch(root, "Forest Main Path", sprite, new Vector3(0f, -0.6f, 0f), new Vector3(3.3f, 12.5f, 1f), new Color(0.38f, 0.27f, 0.16f));
+        ConfigureGroundPatch(root, "Forest Clearing", sprite, new Vector3(0f, 4.7f, 0f), new Vector3(9f, 4f, 1f), new Color(0.14f, 0.42f, 0.2f));
+
+        ConfigureWall(root, "Forest North Boundary", sprite, new Vector3(0f, 8.6f, 0f), new Vector3(20f, 0.55f, 1f));
+        ConfigureWall(root, "Forest South Boundary West", sprite, new Vector3(-6.5f, -8.2f, 0f), new Vector3(7f, 0.55f, 1f));
+        ConfigureWall(root, "Forest South Boundary East", sprite, new Vector3(6.5f, -8.2f, 0f), new Vector3(7f, 0.55f, 1f));
+        ConfigureWall(root, "Forest West Boundary", sprite, new Vector3(-10.2f, 0f, 0f), new Vector3(0.55f, 16f, 1f));
+        ConfigureWall(root, "Forest East Boundary", sprite, new Vector3(10.2f, 0f, 0f), new Vector3(0.55f, 16f, 1f));
+
+        for (int i = 0; i < 34; i++)
+        {
+            float x = i % 2 == 0 ? Random.Range(-8.6f, -3.1f) : Random.Range(3.1f, 8.6f);
+            float y = Random.Range(-6.3f, 7.2f);
+            ConfigureProp(root, $"Forest Tree {i + 1}", sprite, new Vector3(x, y, 0f), new Vector3(1.05f, 1.8f, 1f), new Color(0.03f, 0.24f, 0.08f));
+        }
+
+        ConfigureScenePortal(root, "Kingdom Return Portal", sprite, new Vector3(0f, -7.1f, 0f), new Vector3(3f, 1.25f, 1f), "Kingdom Road", "Return to Kingdom", "Kingdom", "Kingdom Player Spawn", "Return to kingdom?", "Leave the forest and return to the kingdom.");
+
+        ConfigureSimpleInteractable(root, "Forest Ranger", sprite, new Vector3(-3.4f, -4.2f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.36f, 0.72f, 0.28f), "Forest Ranger", "Talk", new[]
+        {
+            "This is the normal forest entrance area.",
+            "Walk north to the dark marker in the clearing to start the Lost Woods minigame."
+        }, true);
+
+        GameObject chest = ConfigureSimpleInteractable(root, "Forest Entry Chest", sprite, new Vector3(3.6f, -3.9f, 0f), new Vector3(0.75f, 0.55f, 1f), new Color(0.45f, 0.25f, 0.1f), "Forest Chest", "Open", null, true);
+        ForestLootChestInteractable forestChest = GetOrAddComponent<ForestLootChestInteractable>(chest);
+        SerializedObject chestObject = new SerializedObject(forestChest);
+        SetSerializedStringIfPresent(chestObject, "displayName", "Forest Chest");
+        SetSerializedStringIfPresent(chestObject, "promptText", "Open");
+        chestObject.ApplyModifiedProperties();
+
+        ConfigureLostWoodsDungeon(root, sprite, player.transform, new Vector3(0f, 24f, 0f), new Vector3(0f, 6.4f, 0f));
+    }
+
+    static void ConfigureCharacterCreationForScene(GameObject player, GameObject gameplayRoot)
+    {
+        GameObject creatorObject = GetOrCreateGameObject("Character Creation Controller", Vector3.zero);
+        CharacterCreationController creator = GetOrAddComponent<CharacterCreationController>(creatorObject);
+
+        SerializedObject creatorObjectSerialized = new SerializedObject(creator);
+        creatorObjectSerialized.FindProperty("showOnStart").boolValue = true;
+        creatorObjectSerialized.FindProperty("gameplayRoot").objectReferenceValue = gameplayRoot;
+        creatorObjectSerialized.FindProperty("playerMovement").objectReferenceValue = player == null ? null : player.GetComponent<PlayerMovementController>();
+        creatorObjectSerialized.FindProperty("playerCombat").objectReferenceValue = player == null ? null : player.GetComponent<PlayerCombatController>();
+        creatorObjectSerialized.FindProperty("playerInventory").objectReferenceValue = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        creatorObjectSerialized.FindProperty("visualApplier").objectReferenceValue = player == null ? null : player.GetComponentInChildren<CharacterVisualApplier>();
+        creatorObjectSerialized.FindProperty("playerBodyRenderer").objectReferenceValue = player == null ? null : player.GetComponent<SpriteRenderer>();
+        creatorObjectSerialized.FindProperty("playerWeaponRenderer").objectReferenceValue = FindPlayerWeaponRenderer(player);
+        creatorObjectSerialized.ApplyModifiedProperties();
+    }
+
+    static SpriteRenderer FindPlayerWeaponRenderer(GameObject player)
+    {
+        if (player == null)
+        {
+            return null;
+        }
+
+        Transform weapon = player.transform.Find("Sword Weapon/Blade");
+        return weapon == null ? null : weapon.GetComponent<SpriteRenderer>();
+    }
+
+    static void EnsureScenesFolder()
+    {
+        if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
+        {
+            AssetDatabase.CreateFolder("Assets", "Scenes");
+        }
+    }
+
+    static void ConfigureBuildSettings()
+    {
+        EnsureScenesFolder();
+
+        EditorBuildSettings.scenes = new[]
+        {
+            new EditorBuildSettingsScene(KingdomScenePath, true),
+            new EditorBuildSettingsScene(ForestScenePath, true)
+        };
     }
 
     static void CleanupObsoletePrototypeObjects()
