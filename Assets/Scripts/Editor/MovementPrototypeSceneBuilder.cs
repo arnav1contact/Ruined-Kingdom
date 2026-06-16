@@ -198,7 +198,11 @@ public static class MovementPrototypeSceneBuilder
             "North Wall",
             "South Wall",
             "East Wall",
-            "West Wall"
+            "West Wall",
+            "North Kingdom Boundary",
+            "Forest North Boundary",
+            "Forest West Boundary",
+            "Forest East Boundary"
         };
 
         for (int i = 0; i < obsoleteNames.Length; i++)
@@ -446,7 +450,8 @@ public static class MovementPrototypeSceneBuilder
 
     static void ConfigureWalls(Transform parent, Sprite wallSprite)
     {
-        ConfigureWall(parent, "North Kingdom Boundary", wallSprite, new Vector3(0f, 12.8f, 0f), new Vector3(42f, 0.75f, 1f));
+        ConfigureWall(parent, "North Kingdom Boundary West", wallSprite, new Vector3(-12f, 12.8f, 0f), new Vector3(18f, 0.75f, 1f));
+        ConfigureWall(parent, "North Kingdom Boundary East", wallSprite, new Vector3(12f, 12.8f, 0f), new Vector3(18f, 0.75f, 1f));
         ConfigureWall(parent, "South Kingdom Boundary", wallSprite, new Vector3(0f, -12.8f, 0f), new Vector3(42f, 0.75f, 1f));
         ConfigureWall(parent, "West Kingdom Boundary", wallSprite, new Vector3(-20.8f, 0f, 0f), new Vector3(0.75f, 25f, 1f));
         ConfigureWall(parent, "East Kingdom Boundary", wallSprite, new Vector3(20.8f, 0f, 0f), new Vector3(0.75f, 25f, 1f));
@@ -499,13 +504,14 @@ public static class MovementPrototypeSceneBuilder
         ConfigureHubPlaza(parent, sprite);
         ConfigureKingdomBuildings(parent, sprite, hubSpawn, hubBounds);
 
-        Transform forestSpawn = ConfigureSpawn(parent, "Forest Approach Spawn", new Vector3(0f, 22.1f, 0f));
+        Vector3 forestSceneCenter = new Vector3(0f, 82f, 0f);
+        Transform forestSpawn = ConfigureSpawn(parent, "Forest Approach Spawn", forestSceneCenter + new Vector3(0f, -5.3f, 0f));
         Transform seaSpawn = ConfigureSpawn(parent, "Sea Road Spawn", new Vector3(17.4f, 0f, 0f));
         Transform desertSpawn = ConfigureSpawn(parent, "Desert Gate Spawn", new Vector3(0f, -15.2f, 0f));
         Transform volcanoSpawn = ConfigureSpawn(parent, "Volcano Road Spawn", new Vector3(-17.4f, 0f, 0f));
         Transform ruinsSpawn = ConfigureSpawn(parent, "Old Ruins Spawn", new Vector3(17.4f, 15.2f, 0f));
 
-        CameraAreaBounds2D forestBounds = ConfigureAreaBounds(parent, "Forest Camera Bounds", new Vector2(-10f, 18f), new Vector2(10f, 35f));
+        CameraAreaBounds2D forestBounds = ConfigureAreaBounds(parent, "Forest Camera Bounds", new Vector2(-10f, 74f), new Vector2(10f, 91f));
         CameraAreaBounds2D seaBounds = ConfigureAreaBounds(parent, "Sea Camera Bounds", new Vector2(11f, -5f), new Vector2(24f, 5f));
         CameraAreaBounds2D desertBounds = ConfigureAreaBounds(parent, "Desert Camera Bounds", new Vector2(-7f, -21f), new Vector2(7f, -10f));
         CameraAreaBounds2D volcanoBounds = ConfigureAreaBounds(parent, "Volcano Camera Bounds", new Vector2(-24f, -5f), new Vector2(-11f, 5f));
@@ -517,13 +523,13 @@ public static class MovementPrototypeSceneBuilder
         ConfigureGate(parent, "West Volcano Gate", sprite, new Vector3(-15.25f, -1.2f, 0f), volcanoSpawn, volcanoBounds, "Volcano Road", "Preview Volcano", "The western cliffs are marked for a future route.");
         ConfigureGate(parent, "Old Ruins Gate", sprite, new Vector3(13.4f, 7.75f, 0f), ruinsSpawn, ruinsBounds, "Old Ruins", "Preview Ruins", "The ruin road is marked for a future route.");
 
-        ConfigureGate(parent, "Forest Return Gate", sprite, new Vector3(0f, 19.2f, 0f), hubSpawn, hubBounds, "Kingdom Road", "Return to Kingdom", "Back to the kingdom.");
+        ConfigureGate(parent, "Forest Return Gate", sprite, forestSceneCenter + new Vector3(0f, -7.2f, 0f), hubSpawn, hubBounds, "Kingdom Road", "Return to Kingdom", "Back to the kingdom.");
         ConfigureGate(parent, "Sea Return Gate", sprite, new Vector3(12.8f, 0f, 0f), hubSpawn, hubBounds, "Return Road", "Return to Hub", "Back to the central hub.");
         ConfigureGate(parent, "Desert Return Gate", sprite, new Vector3(0f, -11.5f, 0f), hubSpawn, hubBounds, "Return Road", "Return to Hub", "Back to the central hub.");
         ConfigureGate(parent, "Volcano Return Gate", sprite, new Vector3(-12.8f, 0f, 0f), hubSpawn, hubBounds, "Return Road", "Return to Hub", "Back to the central hub.");
         ConfigureGate(parent, "Ruins Return Gate", sprite, new Vector3(12.8f, 15.2f, 0f), hubSpawn, hubBounds, "Return Road", "Return to Hub", "Back to the central hub.");
 
-        ConfigureForestFirstArea(parent, sprite, player.transform);
+        ConfigureForestFirstArea(parent, sprite, player.transform, forestSceneCenter);
         ConfigureFutureRoutePreview(parent, sprite, "Sea", new Vector3(18f, 0f, 0f), new Color(0.1f, 0.48f, 0.62f), "A future coastal combat route.");
         ConfigureFutureRoutePreview(parent, sprite, "Desert", new Vector3(0f, -16f, 0f), new Color(0.68f, 0.52f, 0.24f), "A future heat and endurance route.");
         ConfigureFutureRoutePreview(parent, sprite, "Volcano", new Vector3(-18f, 0f, 0f), new Color(0.32f, 0.18f, 0.18f), "A future heavy enemy route.");
@@ -670,9 +676,8 @@ public static class MovementPrototypeSceneBuilder
         chestObject.ApplyModifiedProperties();
     }
 
-    static void ConfigureForestFirstArea(Transform parent, Sprite sprite, Transform player)
+    static void ConfigureForestFirstArea(Transform parent, Sprite sprite, Transform player, Vector3 center)
     {
-        Vector3 center = new Vector3(0f, 26f, 0f);
         ConfigureGroundPatch(parent, "Forest Outskirts Ground", sprite, center, new Vector3(17f, 14f, 1f), new Color(0.12f, 0.42f, 0.18f));
         ConfigureGroundPatch(parent, "Forest Walkthrough Path", sprite, center + new Vector3(0f, 0.1f, 0f), new Vector3(3.8f, 12f, 1f), new Color(0.42f, 0.31f, 0.18f));
         ConfigureGroundPatch(parent, "Forest Clearing", sprite, center + new Vector3(0f, 4.8f, 0f), new Vector3(8.8f, 3.8f, 1f), new Color(0.15f, 0.38f, 0.18f));
@@ -698,20 +703,24 @@ public static class MovementPrototypeSceneBuilder
         SetSerializedStringIfPresent(outskirtsChestObject, "promptText", "Open");
         outskirtsChestObject.ApplyModifiedProperties();
 
-        ConfigureLostWoodsDungeon(parent, sprite, player);
+        ConfigureWall(parent, "Forest North Boundary", sprite, center + new Vector3(0f, 7.4f, 0f), new Vector3(17f, 0.55f, 1f));
+        ConfigureWall(parent, "Forest West Boundary", sprite, center + new Vector3(-8.8f, 0f, 0f), new Vector3(0.55f, 14f, 1f));
+        ConfigureWall(parent, "Forest East Boundary", sprite, center + new Vector3(8.8f, 0f, 0f), new Vector3(0.55f, 14f, 1f));
+
+        ConfigureLostWoodsDungeon(parent, sprite, player, center + new Vector3(0f, 18f, 0f), center + new Vector3(0f, 6.2f, 0f));
     }
 
-    static void ConfigureLostWoodsDungeon(Transform parent, Sprite sprite, Transform player)
+    static void ConfigureLostWoodsDungeon(Transform parent, Sprite sprite, Transform player, Vector3 dungeonCenter, Vector3 entrancePosition)
     {
-        GameObject dungeon = GetOrCreateChild(parent, "Lost Woods Dungeon", new Vector3(0f, 42f, 0f));
+        GameObject dungeon = GetOrCreateChild(parent, "Lost Woods Dungeon", dungeonCenter);
         ConfigureGroundPatch(dungeon.transform, "Lost Woods Room Ground", sprite, Vector3.zero, new Vector3(13f, 8.5f, 1f), new Color(0.07f, 0.28f, 0.11f));
         ConfigureGroundPatch(dungeon.transform, "Lost Woods Fork Path", sprite, new Vector3(0f, -1.4f, 0f), new Vector3(8f, 1.1f, 1f), new Color(0.34f, 0.24f, 0.15f));
         ConfigureGroundPatch(dungeon.transform, "Lost Woods North Path", sprite, new Vector3(0f, 1.3f, 0f), new Vector3(1.25f, 4.3f, 1f), new Color(0.34f, 0.24f, 0.15f));
 
         Transform spawn = ConfigureSpawn(dungeon.transform, "Lost Woods Player Spawn", new Vector3(0f, -2.8f, 0f));
-        CameraAreaBounds2D bounds = ConfigureAreaBounds(parent, "Lost Woods Camera Bounds", new Vector2(-6f, 38f), new Vector2(6f, 46f));
+        CameraAreaBounds2D bounds = ConfigureAreaBounds(parent, "Lost Woods Camera Bounds", new Vector2(dungeonCenter.x - 6f, dungeonCenter.y - 4f), new Vector2(dungeonCenter.x + 6f, dungeonCenter.y + 4f));
 
-        GameObject entranceMarker = ConfigureSimpleInteractable(parent, "Lost Woods Entrance", sprite, new Vector3(0f, 32.2f, 0f), new Vector3(2.1f, 1.35f, 1f), new Color(0.08f, 0.18f, 0.08f), "Lost Woods", "Enter Dungeon", new[] { "Enter the shifting woods." }, false);
+        GameObject entranceMarker = ConfigureSimpleInteractable(parent, "Lost Woods Entrance", sprite, entrancePosition, new Vector3(2.1f, 1.35f, 1f), new Color(0.08f, 0.18f, 0.08f), "Lost Woods", "Enter Dungeon", new[] { "Enter the shifting woods." }, false);
         LostWoodsEntranceInteractable entrance = GetOrAddComponent<LostWoodsEntranceInteractable>(entranceMarker);
 
         GameObject leftGate = ConfigureSimpleInteractable(dungeon.transform, "Left Woods Path", sprite, new Vector3(-3.3f, 2.8f, 0f), new Vector3(1.05f, 1f, 1f), new Color(0.04f, 0.2f, 0.08f), "Left Path", "Choose Left", null, true);

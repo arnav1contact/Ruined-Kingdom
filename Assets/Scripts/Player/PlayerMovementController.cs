@@ -397,6 +397,14 @@ public class SimpleInteractable : MonoBehaviour
     {
         player?.ShowDialogue(displayName, dialogueLines);
     }
+
+    protected bool WasInteractPressedThisFrame()
+    {
+        Keyboard keyboard = Keyboard.current;
+        Gamepad gamepad = Gamepad.current;
+        return keyboard != null && (keyboard.eKey.wasPressedThisFrame || keyboard.rKey.wasPressedThisFrame)
+            || gamepad != null && gamepad.buttonNorth.wasPressedThisFrame;
+    }
 }
 
 [DisallowMultipleComponent]
@@ -431,6 +439,20 @@ public class ZoneGateInteractable : SimpleInteractable
         if (!string.IsNullOrWhiteSpace(arrivalMessage))
         {
             player.ShowDialogue("Ruined Kingdom", new[] { arrivalMessage });
+        }
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (!WasInteractPressedThisFrame())
+        {
+            return;
+        }
+
+        PlayerInteractionController player = other.GetComponent<PlayerInteractionController>();
+        if (player != null)
+        {
+            Interact(player);
         }
     }
 }
@@ -589,6 +611,20 @@ public class LostWoodsGateInteractable : SimpleInteractable
             dungeon.ChoosePath(player, chooseLeft);
         }
     }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (!WasInteractPressedThisFrame())
+        {
+            return;
+        }
+
+        PlayerInteractionController player = other.GetComponent<PlayerInteractionController>();
+        if (player != null)
+        {
+            Interact(player);
+        }
+    }
 }
 
 [DisallowMultipleComponent]
@@ -742,6 +778,20 @@ public class LostWoodsEntranceInteractable : SimpleInteractable
     public override void Interact(PlayerInteractionController player)
     {
         dungeon?.Begin(player);
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (!WasInteractPressedThisFrame())
+        {
+            return;
+        }
+
+        PlayerInteractionController player = other.GetComponent<PlayerInteractionController>();
+        if (player != null)
+        {
+            Interact(player);
+        }
     }
 }
 
