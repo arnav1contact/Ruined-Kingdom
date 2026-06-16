@@ -577,6 +577,9 @@ public class SceneTransitionPromptController : MonoBehaviour
             return;
         }
 
+        PlayerInventoryHudController inventory = FindFirstObjectByType<PlayerInventoryHudController>();
+        inventory?.SavePrototypeData();
+
         PlayerPrefs.SetString(PendingSpawnKey, targetSpawnPointName ?? "");
         PlayerPrefs.Save();
         Time.timeScale = 1f;
@@ -662,7 +665,33 @@ public class SceneSpawnResolver : MonoBehaviour
         }
 
         player.position = spawn.position;
+        ApplyRuntimeProfile(player.gameObject);
+        LoadPrototypeState(player.gameObject);
         PlayerPrefs.DeleteKey(PendingSpawnKey);
+    }
+
+    void ApplyRuntimeProfile(GameObject playerObject)
+    {
+        if (playerObject == null || !CharacterProfileRuntime.HasProfile)
+        {
+            return;
+        }
+
+        CharacterProfile profile = CharacterProfileRuntime.CurrentProfile;
+        CharacterVisualApplier visualApplier = playerObject.GetComponentInChildren<CharacterVisualApplier>();
+        visualApplier?.ApplyProfile(profile);
+
+        PlayerInventoryHudController inventory = playerObject.GetComponent<PlayerInventoryHudController>();
+        if (inventory != null && !inventory.HasLoadedPrototypeData)
+        {
+            inventory.ApplyStartingClass(profile.StartingClass);
+        }
+    }
+
+    void LoadPrototypeState(GameObject playerObject)
+    {
+        PlayerInventoryHudController inventory = playerObject == null ? null : playerObject.GetComponent<PlayerInventoryHudController>();
+        inventory?.LoadPrototypeData();
     }
 
     Transform FindSpawn(string spawnName)

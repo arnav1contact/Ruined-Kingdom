@@ -76,6 +76,10 @@ public static class MovementPrototypeSceneBuilder
     [MenuItem("Tools/Ruined Kingdom/Create Movement Test Room")]
     public static void CreateMovementTestRoom()
     {
+        CreatePrototypeSceneSet();
+        return;
+
+#pragma warning disable CS0162
         CleanupObsoletePrototypeObjects();
 
         InputActionReference moveReference = GetOrCreateMoveActionReference();
@@ -93,6 +97,7 @@ public static class MovementPrototypeSceneBuilder
 
         Selection.activeGameObject = player;
         EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+#pragma warning restore CS0162
     }
 
     static GameObject ConfigurePlayer(Sprite playerSprite, InputActionReference moveReference, InputActionReference attackReference)

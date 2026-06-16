@@ -561,6 +561,7 @@ public class PlayerInventoryHudController : MonoBehaviour
 
     bool inventoryOpen;
     WeaponType heldItem;
+    bool hasLoadedPrototypeData;
 
     readonly Key[] hotbarKeys =
     {
@@ -577,6 +578,7 @@ public class PlayerInventoryHudController : MonoBehaviour
     public WeaponType SelectedWeapon => hotbar == null || hotbar.Length == 0 ? WeaponType.Sword : hotbar[selectedHotbarIndex];
     public int Level => level;
     public int Pixicoins => pixicoins;
+    public bool HasLoadedPrototypeData => hasLoadedPrototypeData;
 
     void Awake()
     {
@@ -1013,6 +1015,7 @@ public class PlayerInventoryHudController : MonoBehaviour
         }
 
         PlayerPrefs.Save();
+        hasLoadedPrototypeData = true;
         ToastHudController.Show("Prototype saved");
     }
 
@@ -1031,6 +1034,7 @@ public class PlayerInventoryHudController : MonoBehaviour
             materialCounts[i] = PlayerPrefs.GetInt($"RK_MaterialCount_{i}", materialCounts[i]);
         }
 
+        hasLoadedPrototypeData = true;
         ToastHudController.Show("Prototype loaded");
     }
 }
