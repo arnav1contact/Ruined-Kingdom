@@ -169,6 +169,13 @@ public static class MovementPrototypeSceneBuilder
         GetOrAddComponent<ToastHudController>(systems);
         GetOrAddComponent<FloatingCombatTextHud>(systems);
         GetOrAddComponent<ControlHelpHudController>(systems);
+        GetOrAddComponent<SceneTransitionPromptController>(systems);
+
+        SceneSpawnResolver spawnResolver = GetOrAddComponent<SceneSpawnResolver>(systems);
+        SerializedObject spawnResolverObject = new SerializedObject(spawnResolver);
+        spawnResolverObject.FindProperty("player").objectReferenceValue = player.transform;
+        spawnResolverObject.FindProperty("fallbackSpawnPointName").stringValue = "Kingdom Player Spawn";
+        spawnResolverObject.ApplyModifiedProperties();
 
         PlayerInteractionController interaction = GetOrAddComponent<PlayerInteractionController>(player);
         SerializedObject interactionObject = new SerializedObject(interaction);
@@ -922,7 +929,26 @@ public static class MovementPrototypeSceneBuilder
     static Transform ConfigureSpawn(Transform parent, string name, Vector3 position)
     {
         GameObject spawn = GetOrCreateChild(parent, name, position);
+        SceneSpawnPoint spawnPoint = GetOrAddComponent<SceneSpawnPoint>(spawn);
+        SerializedObject spawnObject = new SerializedObject(spawnPoint);
+        spawnObject.FindProperty("spawnPointName").stringValue = name;
+        spawnObject.ApplyModifiedProperties();
         return spawn.transform;
+    }
+
+    static GameObject ConfigureScenePortal(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, string displayName, string prompt, string targetSceneName, string targetSpawnPointName, string promptTitle, string promptBody)
+    {
+        GameObject portal = ConfigureSimpleInteractable(parent, name, sprite, position, scale, new Color(0.74f, 0.58f, 0.18f), displayName, prompt, null, false);
+        ScenePortalInteractable scenePortal = GetOrAddComponent<ScenePortalInteractable>(portal);
+        SerializedObject portalObject = new SerializedObject(scenePortal);
+        SetSerializedStringIfPresent(portalObject, "displayName", displayName);
+        SetSerializedStringIfPresent(portalObject, "promptText", prompt);
+        portalObject.FindProperty("targetSceneName").stringValue = targetSceneName;
+        portalObject.FindProperty("targetSpawnPointName").stringValue = targetSpawnPointName;
+        portalObject.FindProperty("promptTitle").stringValue = promptTitle;
+        portalObject.FindProperty("promptBody").stringValue = promptBody;
+        portalObject.ApplyModifiedProperties();
+        return portal;
     }
 
     static CameraAreaBounds2D ConfigureAreaBounds(Transform parent, string name, Vector2 min, Vector2 max)

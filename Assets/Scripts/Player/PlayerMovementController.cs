@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody2D))]
@@ -454,6 +455,228 @@ public class ZoneGateInteractable : SimpleInteractable
         {
             Interact(player);
         }
+    }
+}
+
+[DisallowMultipleComponent]
+public class ScenePortalInteractable : SimpleInteractable
+{
+    [SerializeField] string targetSceneName = "Forest";
+    [SerializeField] string targetSpawnPointName = "Forest Entry Spawn";
+    [SerializeField] string promptTitle = "Enter the forest?";
+    [SerializeField] string promptBody = "Leave the kingdom and travel into the forest.";
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        SceneTransitionPromptController.Show(promptTitle, promptBody, targetSceneName, targetSpawnPointName);
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (!WasInteractPressedThisFrame())
+        {
+            return;
+        }
+
+        PlayerInteractionController player = other.GetComponent<PlayerInteractionController>();
+        if (player != null)
+        {
+            Interact(player);
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class SceneTransitionPromptController : MonoBehaviour
+{
+    const string PendingSpawnKey = "RK_PendingSpawnPoint";
+
+    static SceneTransitionPromptController instance;
+
+    string title;
+    string body;
+    string targetSceneName;
+    string targetSpawnPointName;
+    bool isOpen;
+
+    GUIStyle titleStyle;
+    GUIStyle bodyStyle;
+
+    void Awake()
+    {
+        instance = this;
+    }
+
+    public static void Show(string promptTitle, string promptBody, string sceneName, string spawnPointName)
+    {
+        if (instance == null)
+        {
+            GameObject promptObject = new GameObject("Scene Transition Prompt");
+            instance = promptObject.AddComponent<SceneTransitionPromptController>();
+        }
+
+        instance.title = promptTitle;
+        instance.body = promptBody;
+        instance.targetSceneName = sceneName;
+        instance.targetSpawnPointName = spawnPointName;
+        instance.isOpen = true;
+    }
+
+    void Update()
+    {
+        if (!isOpen)
+        {
+            return;
+        }
+
+        Keyboard keyboard = Keyboard.current;
+        Gamepad gamepad = Gamepad.current;
+
+        if (keyboard != null && (keyboard.yKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
+            || gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)
+        {
+            Confirm();
+        }
+        else if (keyboard != null && (keyboard.nKey.wasPressedThisFrame || keyboard.escapeKey.wasPressedThisFrame)
+            || gamepad != null && gamepad.buttonEast.wasPressedThisFrame)
+        {
+            Cancel();
+        }
+    }
+
+    void OnGUI()
+    {
+        if (!isOpen)
+        {
+            return;
+        }
+
+        InitializeStyles();
+
+        Rect panel = new Rect(Screen.width * 0.5f - 220f, Screen.height * 0.5f - 90f, 440f, 180f);
+        GUI.Box(panel, "");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 18f, panel.width - 36f, 34f), title, titleStyle);
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 58f, panel.width - 36f, 44f), body, bodyStyle);
+
+        if (GUI.Button(new Rect(panel.x + 58f, panel.y + 118f, 140f, 38f), "Yes"))
+        {
+            Confirm();
+        }
+
+        if (GUI.Button(new Rect(panel.xMax - 198f, panel.y + 118f, 140f, 38f), "No"))
+        {
+            Cancel();
+        }
+    }
+
+    void Confirm()
+    {
+        if (string.IsNullOrWhiteSpace(targetSceneName))
+        {
+            Cancel();
+            return;
+        }
+
+        PlayerPrefs.SetString(PendingSpawnKey, targetSpawnPointName ?? "");
+        PlayerPrefs.Save();
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(targetSceneName);
+    }
+
+    void Cancel()
+    {
+        isOpen = false;
+    }
+
+    void InitializeStyles()
+    {
+        titleStyle ??= new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 22,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            normal = { textColor = Color.white }
+        };
+
+        bodyStyle ??= new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 16,
+            wordWrap = true,
+            alignment = TextAnchor.MiddleCenter,
+            normal = { textColor = Color.white }
+        };
+    }
+}
+
+[DisallowMultipleComponent]
+public class SceneSpawnPoint : MonoBehaviour
+{
+    [SerializeField] string spawnPointName = "Spawn";
+
+    public string SpawnPointName => spawnPointName;
+}
+
+[DisallowMultipleComponent]
+public class SceneSpawnResolver : MonoBehaviour
+{
+    const string PendingSpawnKey = "RK_PendingSpawnPoint";
+
+    [SerializeField] Transform player = null;
+    [SerializeField] string fallbackSpawnPointName = "Player Spawn";
+
+    void Start()
+    {
+        ResolveSpawn();
+    }
+
+    public void ResolveSpawn()
+    {
+        if (player == null)
+        {
+            PlayerMovementController movement = FindFirstObjectByType<PlayerMovementController>();
+            player = movement == null ? null : movement.transform;
+        }
+
+        if (player == null)
+        {
+            return;
+        }
+
+        string requestedSpawn = PlayerPrefs.GetString(PendingSpawnKey, fallbackSpawnPointName);
+        Transform spawn = FindSpawn(requestedSpawn);
+        if (spawn == null)
+        {
+            spawn = FindSpawn(fallbackSpawnPointName);
+        }
+
+        if (spawn == null)
+        {
+            return;
+        }
+
+        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.position = spawn.position;
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        player.position = spawn.position;
+        PlayerPrefs.DeleteKey(PendingSpawnKey);
+    }
+
+    Transform FindSpawn(string spawnName)
+    {
+        SceneSpawnPoint[] spawns = FindObjectsByType<SceneSpawnPoint>(FindObjectsSortMode.None);
+        for (int i = 0; i < spawns.Length; i++)
+        {
+            if (spawns[i] != null && spawns[i].SpawnPointName == spawnName)
+            {
+                return spawns[i].transform;
+            }
+        }
+
+        return null;
     }
 }
 
