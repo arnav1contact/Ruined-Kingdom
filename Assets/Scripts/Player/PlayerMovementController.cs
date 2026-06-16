@@ -281,6 +281,14 @@ public class PlayerInteractionController : MonoBehaviour
             }
         }
 
+        for (int i = 0; i < interactables.Length; i++)
+        {
+            if (interactables[i].GetType() != typeof(SimpleInteractable))
+            {
+                return interactables[i];
+            }
+        }
+
         return interactables[0];
     }
 }
@@ -419,6 +427,78 @@ public class ZoneGateInteractable : SimpleInteractable
 }
 
 [DisallowMultipleComponent]
+public class HealerServiceInteractable : SimpleInteractable
+{
+    public override void Interact(PlayerInteractionController player)
+    {
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        inventory?.HealAndRefill();
+        player?.ShowDialogue("Healer Shrine", new[]
+        {
+            "Warm light settles into your armor.",
+            "HP and stamina restored."
+        });
+    }
+}
+
+[DisallowMultipleComponent]
+public class QuestBoardInteractable : SimpleInteractable
+{
+    public override void Interact(PlayerInteractionController player)
+    {
+        player?.ShowDialogue("Route Board", new[]
+        {
+            "Current combat route work:",
+            RouteObjectiveManager.GetQuestBoardText()
+        });
+    }
+}
+
+[DisallowMultipleComponent]
+public class RouteRewardChestInteractable : SimpleInteractable
+{
+    [SerializeField] string routeName = "Forest";
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (RouteObjectiveManager.TryClaimRouteReward(routeName, inventory))
+        {
+            player?.ShowDialogue($"{routeName} Chest", new[]
+            {
+                "The route chest opens.",
+                "You claimed bonus EXP, Pixicoins, and a route badge."
+            });
+            return;
+        }
+
+        if (RouteObjectiveManager.IsRouteComplete(routeName))
+        {
+            player?.ShowDialogue($"{routeName} Chest", new[] { "This route reward has already been claimed." });
+        }
+        else
+        {
+            player?.ShowDialogue($"{routeName} Chest", new[] { $"Clear the {routeName} route enemies first." });
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class HubServiceInteractable : SimpleInteractable
+{
+    [SerializeField] string serviceName = "Service";
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        player?.ShowDialogue(serviceName, new[]
+        {
+            $"{serviceName} is a placeholder service.",
+            "This is where upgrades, storage, crafting, weapon merges, or elemental infusion can live later."
+        });
+    }
+}
+
+[DisallowMultipleComponent]
 public class HubWorldClockController : MonoBehaviour
 {
     [SerializeField] int day = 1;
@@ -484,5 +564,203 @@ public class HubWorldClockController : MonoBehaviour
         GUI.color = tint;
         GUI.DrawTexture(new Rect(0f, 0f, Screen.width, Screen.height), Texture2D.whiteTexture);
         GUI.color = oldColor;
+    }
+}
+
+[DisallowMultipleComponent]
+public class ToastHudController : MonoBehaviour
+{
+    static ToastHudController instance;
+
+    readonly List<ToastMessage> messages = new List<ToastMessage>();
+    GUIStyle toastStyle;
+
+    void Awake()
+    {
+        instance = this;
+    }
+
+    public static void Show(string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return;
+        }
+
+        if (instance == null)
+        {
+            GameObject hud = new GameObject("Toast HUD");
+            instance = hud.AddComponent<ToastHudController>();
+        }
+
+        instance.messages.Add(new ToastMessage(message, Time.unscaledTime + 3f));
+    }
+
+    void OnGUI()
+    {
+        InitializeStyle();
+
+        for (int i = messages.Count - 1; i >= 0; i--)
+        {
+            if (Time.unscaledTime > messages[i].ExpiresAt)
+            {
+                messages.RemoveAt(i);
+            }
+        }
+
+        float y = 118f;
+        for (int i = messages.Count - 1; i >= 0 && i >= messages.Count - 5; i--)
+        {
+            GUI.Box(new Rect(Screen.width - 292f, y, 270f, 30f), messages[i].Text, toastStyle);
+            y += 34f;
+        }
+    }
+
+    void InitializeStyle()
+    {
+        toastStyle ??= new GUIStyle(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = 15,
+            padding = new RectOffset(12, 8, 4, 4),
+            normal = { textColor = Color.white }
+        };
+    }
+
+    readonly struct ToastMessage
+    {
+        public readonly string Text;
+        public readonly float ExpiresAt;
+
+        public ToastMessage(string text, float expiresAt)
+        {
+            Text = text;
+            ExpiresAt = expiresAt;
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class FloatingCombatTextHud : MonoBehaviour
+{
+    static FloatingCombatTextHud instance;
+
+    readonly List<FloatingText> texts = new List<FloatingText>();
+    GUIStyle style;
+
+    void Awake()
+    {
+        instance = this;
+    }
+
+    public static void Show(Vector3 worldPosition, string text, Color color)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        if (instance == null)
+        {
+            GameObject hud = new GameObject("Floating Combat Text HUD");
+            instance = hud.AddComponent<FloatingCombatTextHud>();
+        }
+
+        instance.texts.Add(new FloatingText(worldPosition, text, color, Time.time));
+    }
+
+    void OnGUI()
+    {
+        if (Camera.main == null)
+        {
+            return;
+        }
+
+        InitializeStyle();
+
+        for (int i = texts.Count - 1; i >= 0; i--)
+        {
+            FloatingText item = texts[i];
+            float age = Time.time - item.StartTime;
+            if (age > 0.9f)
+            {
+                texts.RemoveAt(i);
+                continue;
+            }
+
+            Vector3 screen = Camera.main.WorldToScreenPoint(item.WorldPosition + Vector3.up * age * 0.75f);
+            if (screen.z < 0f)
+            {
+                continue;
+            }
+
+            Color oldColor = GUI.color;
+            GUI.color = new Color(item.Color.r, item.Color.g, item.Color.b, 1f - age / 0.9f);
+            GUI.Label(new Rect(screen.x - 45f, Screen.height - screen.y - 20f, 90f, 26f), item.Text, style);
+            GUI.color = oldColor;
+        }
+    }
+
+    void InitializeStyle()
+    {
+        style ??= new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.MiddleCenter,
+            fontSize = 18,
+            fontStyle = FontStyle.Bold
+        };
+    }
+
+    readonly struct FloatingText
+    {
+        public readonly Vector3 WorldPosition;
+        public readonly string Text;
+        public readonly Color Color;
+        public readonly float StartTime;
+
+        public FloatingText(Vector3 worldPosition, string text, Color color, float startTime)
+        {
+            WorldPosition = worldPosition;
+            Text = text;
+            Color = color;
+            StartTime = startTime;
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class ControlHelpHudController : MonoBehaviour
+{
+    [SerializeField] bool showHelp;
+
+    void Update()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.hKey.wasPressedThisFrame)
+        {
+            showHelp = !showHelp;
+        }
+    }
+
+    void OnGUI()
+    {
+        if (!showHelp)
+        {
+            GUI.Box(new Rect(16f, Screen.height - 34f, 164f, 24f), "H: Controls");
+            return;
+        }
+
+        Rect panel = new Rect(18f, Screen.height * 0.5f - 150f, 360f, 300f);
+        GUI.Box(panel, "Controls");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 34f, 330f, 24f), "Move: WASD / Arrows / Left Stick");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 62f, 330f, 24f), "Interact / dialogue: E / Y");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 90f, 330f, 24f), "Jump: Q / A");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 118f, 330f, 24f), "Light attack: Space / X");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 146f, 330f, 24f), "Strong attack: F / RB");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 174f, 330f, 24f), "Dodge: Shift or Ctrl / B");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 202f, 330f, 24f), "Charge: hold C / Right Trigger");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 230f, 330f, 24f), "Crouch: hold X / Left Stick Press");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 258f, 330f, 24f), "Inventory: I or Tab");
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 282f, 330f, 24f), "Prototype save/load: F5 / F9");
     }
 }

@@ -92,7 +92,20 @@ public class EnemyCombatController : MonoBehaviour
 
         if (targetHealth != null)
         {
-            targetHealth.TakeDamage(damage);
+            if (targetHealth.TakeDamage(damage))
+            {
+                Rigidbody2D targetBody = targetHealth.GetComponent<Rigidbody2D>();
+                if (targetBody != null)
+                {
+                    Vector2 direction = targetBody.position - rb.position;
+                    if (direction.sqrMagnitude <= 0.0001f)
+                    {
+                        direction = Vector2.down;
+                    }
+
+                    targetBody.MovePosition(targetBody.position + direction.normalized * 0.28f);
+                }
+            }
         }
     }
 
@@ -151,5 +164,157 @@ public class EnemyCombatController : MonoBehaviour
         rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
         rb.constraints = RigidbodyConstraints2D.FreezeRotation;
+    }
+}
+
+[DisallowMultipleComponent]
+public class EnemyRewardComponent : MonoBehaviour
+{
+    [SerializeField] HealthComponent health = null;
+    [SerializeField] string routeName = "Training";
+    [SerializeField] string archetypeName = "Skirmisher";
+    [SerializeField] int experienceReward = 12;
+    [SerializeField] int pixicoinReward = 8;
+    [SerializeField] string materialReward = "Training Scrap";
+    [SerializeField] int materialCount = 1;
+
+    bool claimed;
+
+    void Awake()
+    {
+        if (health == null)
+        {
+            health = GetComponent<HealthComponent>();
+        }
+    }
+
+    void OnEnable()
+    {
+        claimed = false;
+        if (health != null)
+        {
+            health.Emptied += OnEmptied;
+        }
+
+        RouteObjectiveManager.RegisterEnemy(routeName, this);
+    }
+
+    void OnDisable()
+    {
+        if (health != null)
+        {
+            health.Emptied -= OnEmptied;
+        }
+    }
+
+    void OnEmptied(HealthComponent source)
+    {
+        if (claimed)
+        {
+            return;
+        }
+
+        claimed = true;
+        PlayerInventoryHudController inventory = FindFirstObjectByType<PlayerInventoryHudController>();
+        if (inventory != null)
+        {
+            inventory.AddExperience(experienceReward);
+            inventory.AddPixicoins(pixicoinReward);
+            inventory.AddMaterial(materialReward, materialCount);
+        }
+
+        RouteObjectiveManager.ReportEnemyDefeated(routeName, this);
+        ToastHudController.Show($"{archetypeName} defeated");
+    }
+}
+
+public static class RouteObjectiveManager
+{
+    static readonly System.Collections.Generic.Dictionary<string, RouteProgress> routes = new System.Collections.Generic.Dictionary<string, RouteProgress>();
+
+    public static void RegisterEnemy(string routeName, EnemyRewardComponent enemy)
+    {
+        if (string.IsNullOrWhiteSpace(routeName) || enemy == null)
+        {
+            return;
+        }
+
+        RouteProgress route = GetOrCreate(routeName);
+        route.TotalEnemies++;
+    }
+
+    public static void ReportEnemyDefeated(string routeName, EnemyRewardComponent enemy)
+    {
+        if (string.IsNullOrWhiteSpace(routeName))
+        {
+            return;
+        }
+
+        RouteProgress route = GetOrCreate(routeName);
+        route.DefeatedEnemies = Mathf.Min(route.TotalEnemies, route.DefeatedEnemies + 1);
+
+        if (!route.Completed && route.TotalEnemies > 0 && route.DefeatedEnemies >= route.TotalEnemies)
+        {
+            route.Completed = true;
+            route.RewardClaimed = false;
+            ToastHudController.Show($"{routeName} route clear");
+        }
+    }
+
+    public static bool IsRouteComplete(string routeName)
+    {
+        return routes.TryGetValue(routeName, out RouteProgress route) && route.Completed;
+    }
+
+    public static bool TryClaimRouteReward(string routeName, PlayerInventoryHudController inventory)
+    {
+        if (inventory == null || !routes.TryGetValue(routeName, out RouteProgress route) || !route.Completed || route.RewardClaimed)
+        {
+            return false;
+        }
+
+        route.RewardClaimed = true;
+        inventory.AddExperience(25f);
+        inventory.AddPixicoins(40);
+        inventory.AddMaterial($"{routeName} Route Badge", 1);
+        ToastHudController.Show($"{routeName} reward claimed");
+        return true;
+    }
+
+    public static string GetQuestBoardText()
+    {
+        if (routes.Count == 0)
+        {
+            return "Routes are not registered yet. Rebuild the movement test room.";
+        }
+
+        System.Text.StringBuilder builder = new System.Text.StringBuilder();
+        foreach (System.Collections.Generic.KeyValuePair<string, RouteProgress> pair in routes)
+        {
+            RouteProgress route = pair.Value;
+            string status = route.Completed ? route.RewardClaimed ? "Reward claimed" : "Clear - claim chest" : $"{route.DefeatedEnemies}/{route.TotalEnemies} defeated";
+            builder.AppendLine($"{pair.Key}: {status}");
+        }
+
+        return builder.ToString();
+    }
+
+    static RouteProgress GetOrCreate(string routeName)
+    {
+        if (!routes.TryGetValue(routeName, out RouteProgress route))
+        {
+            route = new RouteProgress();
+            routes[routeName] = route;
+        }
+
+        return route;
+    }
+
+    sealed class RouteProgress
+    {
+        public int TotalEnemies;
+        public int DefeatedEnemies;
+        public bool Completed;
+        public bool RewardClaimed;
     }
 }

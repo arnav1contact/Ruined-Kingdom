@@ -427,7 +427,14 @@ public class PlayerCombatController : MonoBehaviour
             HealthComponent targetHealth = hit.GetComponentInParent<HealthComponent>();
             if (targetHealth != null)
             {
-                targetHealth.TakeDamage(damage);
+                if (targetHealth.TakeDamage(damage))
+                {
+                    Rigidbody2D targetBody = targetHealth.GetComponent<Rigidbody2D>();
+                    if (targetBody != null)
+                    {
+                        targetBody.MovePosition(targetBody.position + direction * Mathf.Clamp(damage * 0.012f, 0.12f, 0.65f));
+                    }
+                }
             }
         }
     }
@@ -549,6 +556,8 @@ public class PlayerInventoryHudController : MonoBehaviour
     [SerializeField] WeaponRank swordRank = WeaponRank.None;
     [SerializeField] WeaponRank lanceRank = WeaponRank.None;
     [SerializeField] WeaponRank axeRank = WeaponRank.None;
+    [SerializeField] string[] materialNames = new string[20];
+    [SerializeField] int[] materialCounts = new int[20];
 
     bool inventoryOpen;
     WeaponType heldItem;
@@ -566,6 +575,8 @@ public class PlayerInventoryHudController : MonoBehaviour
     };
 
     public WeaponType SelectedWeapon => hotbar == null || hotbar.Length == 0 ? WeaponType.Sword : hotbar[selectedHotbarIndex];
+    public int Level => level;
+    public int Pixicoins => pixicoins;
 
     void Awake()
     {
@@ -593,6 +604,16 @@ public class PlayerInventoryHudController : MonoBehaviour
         if (keyboard.iKey.wasPressedThisFrame || keyboard.tabKey.wasPressedThisFrame)
         {
             SetInventoryOpen(!inventoryOpen);
+        }
+
+        if (keyboard.f5Key.wasPressedThisFrame)
+        {
+            SavePrototypeData();
+        }
+
+        if (keyboard.f9Key.wasPressedThisFrame)
+        {
+            LoadPrototypeData();
         }
 
         for (int i = 0; i < hotbar.Length && i < hotbarKeys.Length; i++)
@@ -627,6 +648,16 @@ public class PlayerInventoryHudController : MonoBehaviour
         if (inventory == null || inventory.Length != 20)
         {
             inventory = new WeaponType[20];
+        }
+
+        if (materialNames == null || materialNames.Length != 20)
+        {
+            materialNames = new string[20];
+        }
+
+        if (materialCounts == null || materialCounts.Length != 20)
+        {
+            materialCounts = new int[20];
         }
 
         if (hotbar[0] == WeaponType.None && hotbar[1] == WeaponType.None && hotbar[2] == WeaponType.None)
@@ -689,11 +720,12 @@ public class PlayerInventoryHudController : MonoBehaviour
 
     void DrawInventory()
     {
-        Rect panel = new Rect(Screen.width * 0.5f - 260f, Screen.height * 0.5f - 190f, 520f, 380f);
+        Rect panel = new Rect(Screen.width * 0.5f - 340f, Screen.height * 0.5f - 220f, 680f, 440f);
         GUI.Box(panel, "Inventory");
         GUI.Label(new Rect(panel.x + 20f, panel.y + 28f, 240f, 24f), $"Pixicoins: {pixicoins}");
         GUI.Label(new Rect(panel.x + 300f, panel.y + 28f, 180f, 24f), $"Level {level}  EXP {experience:0}/{experienceToNextLevel:0}");
         GUI.Label(new Rect(panel.x + 300f, panel.y + 54f, 180f, 24f), $"Ranks  Sword:{swordRank} Lance:{lanceRank} Axe:{axeRank}");
+        GUI.Label(new Rect(panel.x + 20f, panel.y + panel.height - 30f, 360f, 22f), "F5 Save Prototype  |  F9 Load Prototype");
 
         if (heldItem != WeaponType.None)
         {
@@ -701,6 +733,7 @@ public class PlayerInventoryHudController : MonoBehaviour
         }
 
         DrawInventoryGrid(panel.x + 42f, panel.y + 88f);
+        DrawMaterialList(panel.x + 430f, panel.y + 92f);
     }
 
     void DrawInventoryGrid(float startX, float startY)
@@ -747,6 +780,28 @@ public class PlayerInventoryHudController : MonoBehaviour
         return item == WeaponType.None ? "" : item.ToString();
     }
 
+    void DrawMaterialList(float x, float y)
+    {
+        GUI.Label(new Rect(x, y - 28f, 210f, 24f), "Route Materials");
+
+        int row = 0;
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(materialNames[i]) || materialCounts[i] <= 0)
+            {
+                continue;
+            }
+
+            GUI.Box(new Rect(x, y + row * 28f, 210f, 24f), $"{materialNames[i]} x{materialCounts[i]}");
+            row++;
+        }
+
+        if (row == 0)
+        {
+            GUI.Label(new Rect(x, y, 210f, 24f), "No materials yet.");
+        }
+    }
+
     void OnDisable()
     {
         if (inventoryOpen)
@@ -790,5 +845,118 @@ public class PlayerInventoryHudController : MonoBehaviour
                 swordRank = WeaponRank.E;
                 break;
         }
+    }
+
+    public void AddPixicoins(int amount)
+    {
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        pixicoins += amount;
+        ToastHudController.Show($"+{amount} Pixicoins");
+    }
+
+    public void AddExperience(float amount)
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        experience += amount;
+        ToastHudController.Show($"+{Mathf.RoundToInt(amount)} EXP");
+
+        while (experience >= experienceToNextLevel)
+        {
+            experience -= experienceToNextLevel;
+            LevelUp();
+        }
+    }
+
+    public void AddMaterial(string materialName, int count)
+    {
+        if (string.IsNullOrWhiteSpace(materialName) || count <= 0)
+        {
+            return;
+        }
+
+        InitializeDefaultItems();
+
+        int emptyIndex = -1;
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            if (materialNames[i] == materialName)
+            {
+                materialCounts[i] += count;
+                ToastHudController.Show($"+{count} {materialName}");
+                return;
+            }
+
+            if (emptyIndex < 0 && string.IsNullOrWhiteSpace(materialNames[i]))
+            {
+                emptyIndex = i;
+            }
+        }
+
+        if (emptyIndex >= 0)
+        {
+            materialNames[emptyIndex] = materialName;
+            materialCounts[emptyIndex] = count;
+            ToastHudController.Show($"+{count} {materialName}");
+        }
+    }
+
+    public void HealAndRefill()
+    {
+        health?.Refill();
+        stamina?.Refill();
+        ToastHudController.Show("Recovered HP and stamina");
+    }
+
+    void LevelUp()
+    {
+        level++;
+        experienceToNextLevel = Mathf.Ceil(experienceToNextLevel * 1.18f);
+        health?.IncreaseMaxHealth(6f, true);
+        stamina?.IncreaseMaxStamina(4f, true);
+        FloatingCombatTextHud.Show(transform.position + Vector3.up * 1.2f, $"Level {level}", new Color(0.45f, 1f, 0.45f));
+        ToastHudController.Show($"Level up! Now level {level}");
+    }
+
+    public void SavePrototypeData()
+    {
+        PlayerPrefs.SetInt("RK_Level", level);
+        PlayerPrefs.SetFloat("RK_Experience", experience);
+        PlayerPrefs.SetFloat("RK_ExperienceToNext", experienceToNextLevel);
+        PlayerPrefs.SetInt("RK_Pixicoins", pixicoins);
+
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            PlayerPrefs.SetString($"RK_MaterialName_{i}", materialNames[i] ?? "");
+            PlayerPrefs.SetInt($"RK_MaterialCount_{i}", materialCounts[i]);
+        }
+
+        PlayerPrefs.Save();
+        ToastHudController.Show("Prototype saved");
+    }
+
+    public void LoadPrototypeData()
+    {
+        InitializeDefaultItems();
+
+        level = PlayerPrefs.GetInt("RK_Level", level);
+        experience = PlayerPrefs.GetFloat("RK_Experience", experience);
+        experienceToNextLevel = PlayerPrefs.GetFloat("RK_ExperienceToNext", experienceToNextLevel);
+        pixicoins = PlayerPrefs.GetInt("RK_Pixicoins", pixicoins);
+
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            materialNames[i] = PlayerPrefs.GetString($"RK_MaterialName_{i}", materialNames[i] ?? "");
+            materialCounts[i] = PlayerPrefs.GetInt($"RK_MaterialCount_{i}", materialCounts[i]);
+        }
+
+        ToastHudController.Show("Prototype loaded");
     }
 }

@@ -23,7 +23,7 @@ public static class MovementPrototypeSceneBuilder
 
         GameObject roomRoot = GetOrCreateGameObject("Movement Test Room", Vector3.zero);
         GameObject player = ConfigurePlayer(playerSprite, moveReference, attackReference);
-        ConfigureEnemy(roomRoot.transform, "Training Yard Enemy", tileSprite, player.transform, new Vector3(3.75f, 1.75f, 0f), new Color(0.85f, 0.12f, 0.1f), 75f, 2.2f);
+        ConfigureEnemy(roomRoot.transform, "Training Yard Enemy", tileSprite, player.transform, new Vector3(3.75f, 1.75f, 0f), new Color(0.85f, 0.12f, 0.1f), 75f, 2.2f, "Training", "Training Striker", "Training Scrap", 12, 8);
         ConfigureCamera(player.transform);
         ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
         ConfigureFloor(roomRoot.transform, tileSprite);
@@ -75,6 +75,8 @@ public static class MovementPrototypeSceneBuilder
         healthObject.FindProperty("regenerationPerSecond").floatValue = 3f;
         healthObject.FindProperty("destroyWhenEmpty").boolValue = false;
         healthObject.ApplyModifiedProperties();
+        GetOrAddComponent<HitFlashOnDamage>(player).RefreshRenderers();
+        GetOrAddComponent<DamageNumberEmitter>(player);
 
         StaminaComponent stamina = GetOrAddComponent<StaminaComponent>(player);
         SerializedObject staminaObject = new SerializedObject(stamina);
@@ -94,6 +96,7 @@ public static class MovementPrototypeSceneBuilder
         PlayerCombatController combat = GetOrAddComponent<PlayerCombatController>(player);
         CharacterVisualApplier visualApplier = ConfigureCharacterVisuals(player.transform, playerSprite);
         ConfigureWeapon(player.transform, "Sword Weapon", new Color(0.9f, 0.9f, 1f), 25, out Transform playerWeaponPivot, out Transform playerWeaponBlade, out SpriteRenderer playerWeaponRenderer);
+        GetOrAddComponent<HitFlashOnDamage>(player).RefreshRenderers();
 
         SerializedObject combatObject = new SerializedObject(combat);
         combatObject.FindProperty("movementController").objectReferenceValue = movement;
@@ -162,6 +165,9 @@ public static class MovementPrototypeSceneBuilder
         GameObject systems = GetOrCreateGameObject("Ruined Kingdom Runtime Systems", Vector3.zero);
         DialogueHudController dialogueHud = GetOrAddComponent<DialogueHudController>(systems);
         GetOrAddComponent<HubWorldClockController>(systems);
+        GetOrAddComponent<ToastHudController>(systems);
+        GetOrAddComponent<FloatingCombatTextHud>(systems);
+        GetOrAddComponent<ControlHelpHudController>(systems);
 
         PlayerInteractionController interaction = GetOrAddComponent<PlayerInteractionController>(player);
         SerializedObject interactionObject = new SerializedObject(interaction);
@@ -189,7 +195,7 @@ public static class MovementPrototypeSceneBuilder
         indicatorObject.ApplyModifiedProperties();
     }
 
-    static void ConfigureEnemy(Transform parent, string enemyName, Sprite enemySprite, Transform player, Vector3 position, Color bodyColor, float maxHealth, float moveSpeed)
+    static void ConfigureEnemy(Transform parent, string enemyName, Sprite enemySprite, Transform player, Vector3 position, Color bodyColor, float maxHealth, float moveSpeed, string routeName, string archetypeName, string materialReward, int experienceReward, int pixicoinReward)
     {
         GameObject enemy = GetOrCreateChild(parent, enemyName, position);
         enemy.transform.localScale = Vector3.one;
@@ -218,10 +224,13 @@ public static class MovementPrototypeSceneBuilder
         healthObject.FindProperty("regenerationPerSecond").floatValue = 0f;
         healthObject.FindProperty("destroyWhenEmpty").boolValue = true;
         healthObject.ApplyModifiedProperties();
+        GetOrAddComponent<HitFlashOnDamage>(enemy).RefreshRenderers();
+        GetOrAddComponent<DamageNumberEmitter>(enemy);
 
         EnemyCombatController enemyCombat = GetOrAddComponent<EnemyCombatController>(enemy);
         ConfigureEnemyVisuals(enemy.transform, enemySprite, bodyColor);
         ConfigureWeapon(enemy.transform, "Sword Weapon", new Color(0.95f, 0.7f, 0.6f), 25, out Transform enemyWeaponPivot, out Transform enemyWeaponBlade, out SpriteRenderer enemyWeaponRenderer);
+        GetOrAddComponent<HitFlashOnDamage>(enemy).RefreshRenderers();
 
         SerializedObject enemyObject = new SerializedObject(enemyCombat);
         enemyObject.FindProperty("target").objectReferenceValue = player;
@@ -235,6 +244,17 @@ public static class MovementPrototypeSceneBuilder
         enemyObject.FindProperty("weaponBlade").objectReferenceValue = enemyWeaponBlade;
         enemyObject.FindProperty("weaponRenderer").objectReferenceValue = enemyWeaponRenderer;
         enemyObject.ApplyModifiedProperties();
+
+        EnemyRewardComponent reward = GetOrAddComponent<EnemyRewardComponent>(enemy);
+        SerializedObject rewardObject = new SerializedObject(reward);
+        rewardObject.FindProperty("health").objectReferenceValue = health;
+        rewardObject.FindProperty("routeName").stringValue = routeName;
+        rewardObject.FindProperty("archetypeName").stringValue = archetypeName;
+        rewardObject.FindProperty("experienceReward").intValue = experienceReward;
+        rewardObject.FindProperty("pixicoinReward").intValue = pixicoinReward;
+        rewardObject.FindProperty("materialReward").stringValue = materialReward;
+        rewardObject.FindProperty("materialCount").intValue = 1;
+        rewardObject.ApplyModifiedProperties();
 
         ConfigureResourceBar(enemy.transform, "Health Bar", new Vector3(0f, 0.75f, 0f), new Color(0.9f, 0.1f, 0.12f), health, null, WorldResourceBar2D.ResourceType.Health);
         ConfigureYSort(enemy);
@@ -485,6 +505,18 @@ public static class MovementPrototypeSceneBuilder
             "Prototype reward: imagine ores, weapon skills, elemental shards, or Pixicoins here.",
             "No farming required. We are building toward combat routes, loot, and return-to-hub upgrades."
         }, true);
+
+        ConfigureHubService(parent, "Healer Shrine", sprite, new Vector3(2.85f, 1.25f, 0f), new Vector3(0.9f, 0.9f, 1f), new Color(0.7f, 0.95f, 1f), "Healer Shrine", "Recover", typeof(HealerServiceInteractable));
+        ConfigureHubService(parent, "Blacksmith Anvil", sprite, new Vector3(0.95f, 1.65f, 0f), new Vector3(0.95f, 0.55f, 1f), new Color(0.2f, 0.2f, 0.22f), "Blacksmith Anvil", "Inspect", typeof(HubServiceInteractable));
+        ConfigureHubService(parent, "Storage Chest", sprite, new Vector3(3.25f, -1.25f, 0f), new Vector3(0.8f, 0.55f, 1f), new Color(0.55f, 0.32f, 0.12f), "Storage Chest", "Inspect", typeof(HubServiceInteractable));
+        ConfigureHubService(parent, "Upgrade Forge", sprite, new Vector3(-0.85f, 1.65f, 0f), new Vector3(0.95f, 0.7f, 1f), new Color(0.68f, 0.24f, 0.12f), "Upgrade Forge", "Inspect", typeof(HubServiceInteractable));
+        ConfigureTrainingDummy(parent, sprite, new Vector3(3.9f, 0.65f, 0f));
+
+        ConfigureRouteChest(parent, "Forest Reward Chest", sprite, new Vector3(-4.5f, 2.6f, 0f), "Forest");
+        ConfigureRouteChest(parent, "Sea Reward Chest", sprite, new Vector3(4.5f, 2.05f, 0f), "Sea");
+        ConfigureRouteChest(parent, "Desert Reward Chest", sprite, new Vector3(4.55f, -2.25f, 0f), "Desert");
+        ConfigureRouteChest(parent, "Volcano Reward Chest", sprite, new Vector3(-4.5f, -2.25f, 0f), "Volcano");
+        ConfigureRouteChest(parent, "Ruins Reward Chest", sprite, new Vector3(-3.65f, 3.25f, 0f), "Ruins");
     }
 
     static void ConfigureHubPlaza(Transform parent, Sprite sprite)
@@ -494,11 +526,63 @@ public static class MovementPrototypeSceneBuilder
         ConfigureGroundPatch(parent, "Hub East Road", sprite, new Vector3(6.8f, 0f, 0f), new Vector3(13.6f, 1.2f, 1f), new Color(0.48f, 0.34f, 0.18f));
         ConfigureGroundPatch(parent, "Hub South Road", sprite, new Vector3(0f, -5.6f, 0f), new Vector3(1.4f, 12f, 1f), new Color(0.48f, 0.34f, 0.18f));
         ConfigureGroundPatch(parent, "Hub West Road", sprite, new Vector3(-6.8f, 0f, 0f), new Vector3(13.6f, 1.2f, 1f), new Color(0.48f, 0.34f, 0.18f));
-        ConfigureSimpleInteractable(parent, "Hub Notice Board", sprite, new Vector3(-2.8f, 1.55f, 0f), new Vector3(1.15f, 0.75f, 1f), new Color(0.28f, 0.18f, 0.08f), "Notice Board", "Read", new[]
+        GameObject noticeBoard = ConfigureSimpleInteractable(parent, "Hub Notice Board", sprite, new Vector3(-2.8f, 1.55f, 0f), new Vector3(1.15f, 0.75f, 1f), new Color(0.28f, 0.18f, 0.08f), "Route Board", "Read", new[]
         {
             "Ruined Kingdom loop target: gear up in the hub, choose a route, fight through danger, bring resources home, unlock the kingdom.",
             "Next good systems: enemy drops, route rewards, a proper upgrade anvil, and NPC services."
         }, true);
+        QuestBoardInteractable questBoard = GetOrAddComponent<QuestBoardInteractable>(noticeBoard);
+        SerializedObject questBoardObject = new SerializedObject(questBoard);
+        SetSerializedStringIfPresent(questBoardObject, "displayName", "Route Board");
+        SetSerializedStringIfPresent(questBoardObject, "promptText", "Read");
+        questBoardObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureHubService(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color, string displayName, string prompt, System.Type componentType)
+    {
+        GameObject service = ConfigureSimpleInteractable(parent, name, sprite, position, scale, color, displayName, prompt, null, true);
+        Component component = service.GetComponent(componentType);
+        if (component == null)
+        {
+            component = service.AddComponent(componentType);
+        }
+
+        SerializedObject serviceObject = new SerializedObject(component);
+        SetSerializedStringIfPresent(serviceObject, "displayName", displayName);
+        SetSerializedStringIfPresent(serviceObject, "promptText", prompt);
+        SetSerializedStringIfPresent(serviceObject, "serviceName", displayName);
+        serviceObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureRouteChest(Transform parent, string name, Sprite sprite, Vector3 position, string routeName)
+    {
+        GameObject chest = ConfigureSimpleInteractable(parent, name, sprite, position, new Vector3(0.75f, 0.55f, 1f), new Color(0.5f, 0.28f, 0.12f), $"{routeName} Chest", "Claim", null, true);
+        RouteRewardChestInteractable routeChest = GetOrAddComponent<RouteRewardChestInteractable>(chest);
+        SerializedObject chestObject = new SerializedObject(routeChest);
+        SetSerializedStringIfPresent(chestObject, "displayName", $"{routeName} Chest");
+        SetSerializedStringIfPresent(chestObject, "promptText", "Claim");
+        chestObject.FindProperty("routeName").stringValue = routeName;
+        chestObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureTrainingDummy(Transform parent, Sprite sprite, Vector3 position)
+    {
+        GameObject dummy = ConfigureSimpleInteractable(parent, "Training Dummy", sprite, position, new Vector3(0.72f, 1.05f, 1f), new Color(0.72f, 0.42f, 0.16f), "Training Dummy", "Inspect", new[]
+        {
+            "Hit me to test weapon timing, range, damage numbers, and hit flash.",
+            "I do not fight back. Not everything in this kingdom is immediately rude."
+        }, true);
+
+        HealthComponent health = GetOrAddComponent<HealthComponent>(dummy);
+        SerializedObject healthObject = new SerializedObject(health);
+        healthObject.FindProperty("maxHealth").floatValue = 999f;
+        healthObject.FindProperty("currentHealth").floatValue = 999f;
+        healthObject.FindProperty("regenerationPerSecond").floatValue = 80f;
+        healthObject.FindProperty("destroyWhenEmpty").boolValue = false;
+        healthObject.ApplyModifiedProperties();
+
+        GetOrAddComponent<HitFlashOnDamage>(dummy).RefreshRenderers();
+        GetOrAddComponent<DamageNumberEmitter>(dummy);
     }
 
     static void ConfigureBiomeZone(Transform parent, Sprite sprite, Transform player, string biomeName, Vector3 center, Color groundColor, Color propColor, Color enemyColor)
@@ -515,8 +599,84 @@ public static class MovementPrototypeSceneBuilder
         ConfigureProp(parent, $"{biomeName} Blocker A", sprite, center + new Vector3(-2.9f, -1.7f, 0f), new Vector3(1.15f, 1.25f, 1f), propColor);
         ConfigureProp(parent, $"{biomeName} Blocker B", sprite, center + new Vector3(3.1f, 1.2f, 0f), new Vector3(1.25f, 1.45f, 1f), propColor);
 
-        ConfigureEnemy(parent, $"{biomeName} Enemy A", sprite, player, center + new Vector3(2.2f, 1.35f, 0f), enemyColor, 65f, 2.15f);
-        ConfigureEnemy(parent, $"{biomeName} Enemy B", sprite, player, center + new Vector3(-1.6f, -1.75f, 0f), enemyColor * 0.85f + Color.white * 0.15f, 90f, 1.85f);
+        ConfigureEnemy(parent, $"{biomeName} Enemy A", sprite, player, center + new Vector3(2.2f, 1.35f, 0f), enemyColor, GetRouteEnemyHealth(biomeName, false), GetRouteEnemySpeed(biomeName, false), biomeName, GetRouteArchetype(biomeName, false), GetRouteMaterial(biomeName), GetRouteExperience(biomeName, false), GetRoutePixicoins(biomeName, false));
+        ConfigureEnemy(parent, $"{biomeName} Enemy B", sprite, player, center + new Vector3(-1.6f, -1.75f, 0f), enemyColor * 0.85f + Color.white * 0.15f, GetRouteEnemyHealth(biomeName, true), GetRouteEnemySpeed(biomeName, true), biomeName, GetRouteArchetype(biomeName, true), GetRouteMaterial(biomeName), GetRouteExperience(biomeName, true), GetRoutePixicoins(biomeName, true));
+    }
+
+    static float GetRouteEnemyHealth(string biomeName, bool secondEnemy)
+    {
+        return biomeName switch
+        {
+            "Sea" => secondEnemy ? 62f : 48f,
+            "Desert" => secondEnemy ? 92f : 72f,
+            "Volcano" => secondEnemy ? 135f : 105f,
+            "Ruins" => secondEnemy ? 115f : 85f,
+            _ => secondEnemy ? 90f : 65f
+        };
+    }
+
+    static float GetRouteEnemySpeed(string biomeName, bool secondEnemy)
+    {
+        return biomeName switch
+        {
+            "Sea" => secondEnemy ? 2.8f : 3.15f,
+            "Volcano" => secondEnemy ? 1.45f : 1.7f,
+            "Desert" => secondEnemy ? 1.75f : 2.05f,
+            "Ruins" => secondEnemy ? 2.1f : 2.35f,
+            _ => secondEnemy ? 1.85f : 2.15f
+        };
+    }
+
+    static string GetRouteArchetype(string biomeName, bool secondEnemy)
+    {
+        return biomeName switch
+        {
+            "Sea" => secondEnemy ? "Sea Skirmisher" : "Sea Cutter",
+            "Desert" => secondEnemy ? "Desert Guard" : "Glass Striker",
+            "Volcano" => secondEnemy ? "Basalt Guard" : "Ember Brute",
+            "Ruins" => secondEnemy ? "Arcane Guard" : "Ruin Striker",
+            _ => secondEnemy ? "Forest Guard" : "Forest Skirmisher"
+        };
+    }
+
+    static string GetRouteMaterial(string biomeName)
+    {
+        return biomeName switch
+        {
+            "Sea" => "Salt Pearl",
+            "Desert" => "Sun Glass",
+            "Volcano" => "Ember Ore",
+            "Ruins" => "Arcane Fragment",
+            _ => "Life Moss"
+        };
+    }
+
+    static int GetRouteExperience(string biomeName, bool secondEnemy)
+    {
+        int baseValue = biomeName switch
+        {
+            "Sea" => 14,
+            "Desert" => 17,
+            "Volcano" => 22,
+            "Ruins" => 20,
+            _ => 15
+        };
+
+        return secondEnemy ? baseValue + 5 : baseValue;
+    }
+
+    static int GetRoutePixicoins(string biomeName, bool secondEnemy)
+    {
+        int baseValue = biomeName switch
+        {
+            "Sea" => 10,
+            "Desert" => 13,
+            "Volcano" => 18,
+            "Ruins" => 16,
+            _ => 11
+        };
+
+        return secondEnemy ? baseValue + 5 : baseValue;
     }
 
     static Transform ConfigureSpawn(Transform parent, string name, Vector3 position)

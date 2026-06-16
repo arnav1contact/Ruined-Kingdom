@@ -61,4 +61,18 @@ public class StaminaComponent : MonoBehaviour
     {
         currentStamina = maxStamina;
     }
+
+    public void IncreaseMaxStamina(float amount, bool refillAddedStamina)
+    {
+        if (amount <= 0f)
+        {
+            return;
+        }
+
+        maxStamina += amount;
+        if (refillAddedStamina)
+        {
+            currentStamina = Mathf.Min(maxStamina, currentStamina + amount);
+        }
+    }
 }
