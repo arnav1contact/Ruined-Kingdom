@@ -397,8 +397,6 @@ public class ZoneGateInteractable : SimpleInteractable
 
     public override void Interact(PlayerInteractionController player)
     {
-        base.Interact(player);
-
         if (player == null || destination == null)
         {
             return;

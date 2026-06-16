@@ -548,7 +548,7 @@ public static class MovementPrototypeSceneBuilder
 
         ConfigureHubService(parent, "Healer Shrine", sprite, new Vector3(4.75f, -1.65f, 0f), new Vector3(0.9f, 0.9f, 1f), new Color(0.7f, 0.95f, 1f), "Healer Shrine", "Recover", typeof(HealerServiceInteractable));
         ConfigureTrainingDummy(parent, sprite, new Vector3(6.15f, -1.95f, 0f));
-        ConfigureSimpleInteractable(parent, "Kingdom Guard", sprite, new Vector3(1.5f, 8.4f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.35f, 0.45f, 0.85f), "Gate Guard", "Talk", new[]
+        ConfigureSimpleInteractable(parent, "Kingdom Guard", sprite, new Vector3(-2.25f, 8.25f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.35f, 0.45f, 0.85f), "Gate Guard", "Talk", new[]
         {
             "No monsters inside the kingdom. That is the whole point of walls.",
             "The forest road is open, but the woods do not stay the same twice."
@@ -557,18 +557,11 @@ public static class MovementPrototypeSceneBuilder
 
     static void ConfigureBuilding(Transform parent, Sprite sprite, string name, Vector3 exteriorPosition, Vector3 exteriorScale, Color color, Vector3 interiorCenter, Transform hubSpawn, CameraAreaBounds2D hubBounds, string prompt, System.Type interiorNpcType, string npcName)
     {
-        GameObject building = ConfigureSimpleInteractable(parent, $"{name} Exterior", sprite, exteriorPosition, exteriorScale, color, name, prompt, new[] { $"Enter {name}." }, true);
+        ConfigureSceneryBlock(parent, $"{name} Exterior", sprite, exteriorPosition, exteriorScale, color);
         Transform interiorSpawn = ConfigureSpawn(parent, $"{name} Interior Spawn", interiorCenter + new Vector3(0f, -1.25f, 0f));
         CameraAreaBounds2D interiorBounds = ConfigureAreaBounds(parent, $"{name} Camera Bounds", new Vector2(interiorCenter.x - 4f, interiorCenter.y - 3f), new Vector2(interiorCenter.x + 4f, interiorCenter.y + 3f));
 
-        ZoneGateInteractable entrance = GetOrAddComponent<ZoneGateInteractable>(building);
-        SerializedObject entranceObject = new SerializedObject(entrance);
-        SetSerializedStringIfPresent(entranceObject, "displayName", name);
-        SetSerializedStringIfPresent(entranceObject, "promptText", prompt);
-        entranceObject.FindProperty("destination").objectReferenceValue = interiorSpawn;
-        entranceObject.FindProperty("destinationBounds").objectReferenceValue = interiorBounds;
-        entranceObject.FindProperty("arrivalMessage").stringValue = $"Entered {name}.";
-        entranceObject.ApplyModifiedProperties();
+        ConfigureGate(parent, $"{name} Door", sprite, exteriorPosition + new Vector3(0f, -exteriorScale.y * 0.55f, 0f), interiorSpawn, interiorBounds, name, prompt, $"Entered {name}.");
 
         ConfigureGroundPatch(parent, $"{name} Interior Floor", sprite, interiorCenter, new Vector3(7f, 4.4f, 1f), new Color(0.27f, 0.24f, 0.2f));
         ConfigureWall(parent, $"{name} Interior North Wall", sprite, interiorCenter + new Vector3(0f, 2.45f, 0f), new Vector3(7.4f, 0.4f, 1f));
@@ -589,6 +582,30 @@ public static class MovementPrototypeSceneBuilder
         SetSerializedStringIfPresent(npcObject, "promptText", "Talk");
         SetSerializedStringIfPresent(npcObject, "serviceName", npcName);
         npcObject.ApplyModifiedProperties();
+    }
+
+    static GameObject ConfigureSceneryBlock(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color)
+    {
+        GameObject scenery = GetOrCreateChild(parent, name, position);
+        scenery.transform.localScale = scale;
+
+        foreach (SimpleInteractable interactable in scenery.GetComponents<SimpleInteractable>())
+        {
+            Object.DestroyImmediate(interactable);
+        }
+
+        SpriteRenderer renderer = GetOrAddComponent<SpriteRenderer>(scenery);
+        renderer.sprite = sprite;
+        renderer.color = color;
+        renderer.sortingOrder = 0;
+
+        BoxCollider2D collider = GetOrAddComponent<BoxCollider2D>(scenery);
+        collider.size = Vector2.one;
+        collider.offset = Vector2.zero;
+        collider.isTrigger = false;
+
+        ConfigureYSort(scenery);
+        return scenery;
     }
 
     static void ConfigureHubService(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color, string displayName, string prompt, System.Type componentType)
@@ -878,7 +895,7 @@ public static class MovementPrototypeSceneBuilder
         GameObject gate = ConfigureSimpleInteractable(parent, name, sprite, position, new Vector3(0.95f, 0.95f, 1f), new Color(0.2f, 0.12f, 0.32f), displayName, prompt, new[]
         {
             $"Travel through {displayName}?"
-        }, true);
+        }, false);
 
         ZoneGateInteractable gateInteractable = GetOrAddComponent<ZoneGateInteractable>(gate);
         SerializedObject gateObject = new SerializedObject(gateInteractable);
