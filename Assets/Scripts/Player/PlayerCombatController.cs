@@ -908,6 +908,80 @@ public class PlayerInventoryHudController : MonoBehaviour
         }
     }
 
+    public bool HasMaterial(string materialName, int count)
+    {
+        if (string.IsNullOrWhiteSpace(materialName) || count <= 0)
+        {
+            return false;
+        }
+
+        InitializeDefaultItems();
+
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            if (materialNames[i] == materialName && materialCounts[i] >= count)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public bool TrySpendMaterial(string materialName, int count)
+    {
+        if (!HasMaterial(materialName, count))
+        {
+            return false;
+        }
+
+        for (int i = 0; i < materialNames.Length; i++)
+        {
+            if (materialNames[i] == materialName)
+            {
+                materialCounts[i] -= count;
+                if (materialCounts[i] <= 0)
+                {
+                    materialCounts[i] = 0;
+                    materialNames[i] = "";
+                }
+
+                ToastHudController.Show($"Spent {count} {materialName}");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void RewardWeaponPractice(WeaponType weaponType)
+    {
+        switch (weaponType)
+        {
+            case WeaponType.Lance:
+                lanceRank = PromoteRank(lanceRank);
+                break;
+            case WeaponType.Axe:
+                axeRank = PromoteRank(axeRank);
+                break;
+            default:
+                swordRank = PromoteRank(swordRank);
+                break;
+        }
+
+        ToastHudController.Show($"{weaponType} practice complete");
+    }
+
+    WeaponRank PromoteRank(WeaponRank rank)
+    {
+        if (rank == WeaponRank.None)
+        {
+            return WeaponRank.E;
+        }
+
+        return rank >= WeaponRank.S ? WeaponRank.S : rank + 1;
+    }
+
     public void HealAndRefill()
     {
         health?.Refill();

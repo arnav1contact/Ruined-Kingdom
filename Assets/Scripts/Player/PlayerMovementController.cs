@@ -499,6 +499,244 @@ public class HubServiceInteractable : SimpleInteractable
 }
 
 [DisallowMultipleComponent]
+public class WeaponSmithInteractable : SimpleInteractable
+{
+    [SerializeField] string requiredMaterial = "Copper Ore";
+    [SerializeField] int requiredCount = 3;
+    [SerializeField] WeaponType practicedWeapon = WeaponType.Sword;
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (inventory == null)
+        {
+            return;
+        }
+
+        if (inventory.TrySpendMaterial(requiredMaterial, requiredCount))
+        {
+            inventory.RewardWeaponPractice(practicedWeapon);
+            player.ShowDialogue("Royal Blacksmith", new[]
+            {
+                $"I reforged your {practicedWeapon} drills with {requiredMaterial}.",
+                "For now this raises the matching weapon rank as a prototype upgrade."
+            });
+            return;
+        }
+
+        player.ShowDialogue("Royal Blacksmith", new[]
+        {
+            $"Bring me {requiredCount} {requiredMaterial} from the forest.",
+            "Copper first. Fancy elemental nonsense after the blade stops wobbling."
+        });
+    }
+}
+
+[DisallowMultipleComponent]
+public class ForestLootChestInteractable : SimpleInteractable
+{
+    [SerializeField] bool opened;
+
+    public void ResetLoot()
+    {
+        opened = false;
+    }
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        if (opened)
+        {
+            player?.ShowDialogue("Forest Chest", new[] { "The chest is empty." });
+            return;
+        }
+
+        opened = true;
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (inventory != null)
+        {
+            inventory.AddMaterial("Copper Ore", Random.Range(1, 4));
+            inventory.AddMaterial("Life Moss", Random.Range(1, 3));
+            inventory.AddPixicoins(Random.Range(8, 18));
+        }
+
+        player?.ShowDialogue("Forest Chest", new[]
+        {
+            "You found copper ore and life moss.",
+            "The forest is already useful. Dangerous, but useful."
+        });
+    }
+}
+
+[DisallowMultipleComponent]
+public class LostWoodsGateInteractable : SimpleInteractable
+{
+    [SerializeField] LostWoodsDungeonController dungeon = null;
+    [SerializeField] bool chooseLeft = false;
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        if (dungeon != null)
+        {
+            dungeon.ChoosePath(player, chooseLeft);
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class LostWoodsDungeonController : MonoBehaviour
+{
+    [SerializeField] Transform playerSpawn = null;
+    [SerializeField] CameraAreaBounds2D cameraBounds = null;
+    [SerializeField] GameObject[] treeProps = null;
+    [SerializeField] GameObject[] enemies = null;
+    [SerializeField] GameObject[] chests = null;
+    [SerializeField] int targetDepth = 5;
+    [SerializeField] int currentDepth;
+    [SerializeField] bool leftIsCorrect;
+
+    public void Begin(PlayerInteractionController player)
+    {
+        currentDepth = 0;
+        RegenerateRoom(player);
+        MovePlayerToRoom(player);
+        ToastHudController.Show("Entered the Lost Woods");
+    }
+
+    public void ChoosePath(PlayerInteractionController player, bool choseLeft)
+    {
+        if (choseLeft == leftIsCorrect)
+        {
+            currentDepth++;
+            if (currentDepth >= targetDepth)
+            {
+                RewardClear(player);
+                currentDepth = 0;
+            }
+            else
+            {
+                ToastHudController.Show($"Correct path {currentDepth}/{targetDepth}");
+            }
+        }
+        else
+        {
+            currentDepth = 0;
+            ToastHudController.Show("The woods loop back...");
+        }
+
+        RegenerateRoom(player);
+        MovePlayerToRoom(player);
+    }
+
+    void RewardClear(PlayerInteractionController player)
+    {
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (inventory != null)
+        {
+            inventory.AddExperience(55f);
+            inventory.AddPixicoins(75);
+            inventory.AddMaterial("Copper Ore", 4);
+            inventory.AddMaterial("Life Moss", 3);
+            inventory.AddMaterial("Forest Sigil", 1);
+        }
+
+        player?.ShowDialogue("Lost Woods", new[]
+        {
+            "You found the end of the winding forest path.",
+            "Copper, life moss, and a forest sigil are yours."
+        });
+    }
+
+    void MovePlayerToRoom(PlayerInteractionController player)
+    {
+        if (player == null || playerSpawn == null)
+        {
+            return;
+        }
+
+        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.position = playerSpawn.position;
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        player.transform.position = playerSpawn.position;
+
+        CameraFollow2D follow = Camera.main == null ? null : Camera.main.GetComponent<CameraFollow2D>();
+        cameraBounds?.ApplyTo(follow);
+    }
+
+    void RegenerateRoom(PlayerInteractionController player)
+    {
+        leftIsCorrect = Random.value > 0.5f;
+        RandomizeProps(treeProps, 18, new Vector2(-4.8f, 4.8f), new Vector2(-2.8f, 3.2f));
+        RandomizeProps(chests, Random.value > 0.45f ? 1 : 0, new Vector2(-3.7f, 3.7f), new Vector2(-1.7f, 2.35f));
+        RandomizeEnemies(player == null ? null : player.transform);
+    }
+
+    void RandomizeProps(GameObject[] props, int activeCount, Vector2 xRange, Vector2 yRange)
+    {
+        if (props == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < props.Length; i++)
+        {
+            bool active = i < activeCount;
+            props[i].SetActive(active);
+            if (active)
+            {
+                props[i].transform.localPosition = new Vector3(Random.Range(xRange.x, xRange.y), Random.Range(yRange.x, yRange.y), 0f);
+                ForestLootChestInteractable chest = props[i].GetComponent<ForestLootChestInteractable>();
+                chest?.ResetLoot();
+            }
+        }
+    }
+
+    void RandomizeEnemies(Transform player)
+    {
+        if (enemies == null)
+        {
+            return;
+        }
+
+        int activeCount = Mathf.Clamp(1 + currentDepth / 2 + Random.Range(0, 2), 1, enemies.Length);
+        for (int i = 0; i < enemies.Length; i++)
+        {
+            bool active = i < activeCount;
+            enemies[i].SetActive(active);
+            if (!active)
+            {
+                continue;
+            }
+
+            enemies[i].transform.localPosition = new Vector3(Random.Range(-3.9f, 3.9f), Random.Range(-1.7f, 2.35f), 0f);
+
+            HealthComponent health = enemies[i].GetComponent<HealthComponent>();
+            health?.Refill();
+
+            EnemyCombatController enemy = enemies[i].GetComponent<EnemyCombatController>();
+            if (enemy != null && player != null)
+            {
+                enemy.SetTarget(player);
+            }
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class LostWoodsEntranceInteractable : SimpleInteractable
+{
+    [SerializeField] LostWoodsDungeonController dungeon = null;
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        dungeon?.Begin(player);
+    }
+}
+
+[DisallowMultipleComponent]
 public class HubWorldClockController : MonoBehaviour
 {
     [SerializeField] int day = 1;
