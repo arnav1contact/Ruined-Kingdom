@@ -976,11 +976,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureGate(parent, $"{name} Exit", sprite, interiorCenter + new Vector3(0f, -2.05f, 0f), hubSpawn, hubBounds, "Door", "Exit", "Back outside.");
 
         GameObject npc = ConfigureSimpleInteractable(parent, $"{name} NPC", sprite, interiorCenter + new Vector3(0f, 0.65f, 0f), new Vector3(0.65f, 1f, 1f), Color.Lerp(color, Color.white, 0.35f), npcName, "Talk", null, true);
-        Component component = npc.GetComponent(interiorNpcType);
-        if (component == null)
-        {
-            component = npc.AddComponent(interiorNpcType);
-        }
+        Component component = GetOrAddComponent(npc, interiorNpcType);
 
         SerializedObject npcObject = new SerializedObject(component);
         SetSerializedStringIfPresent(npcObject, "displayName", npcName);
@@ -1016,11 +1012,7 @@ public static class MovementPrototypeSceneBuilder
     static void ConfigureHubService(Transform parent, string name, Sprite sprite, Vector3 position, Vector3 scale, Color color, string displayName, string prompt, System.Type componentType)
     {
         GameObject service = ConfigureSimpleInteractable(parent, name, sprite, position, scale, color, displayName, prompt, null, true);
-        Component component = service.GetComponent(componentType);
-        if (component == null)
-        {
-            component = service.AddComponent(componentType);
-        }
+        Component component = GetOrAddComponent(service, componentType);
 
         SerializedObject serviceObject = new SerializedObject(component);
         SetSerializedStringIfPresent(serviceObject, "displayName", displayName);
@@ -1493,7 +1485,43 @@ public static class MovementPrototypeSceneBuilder
     static T GetOrAddComponent<T>(GameObject gameObject) where T : Component
     {
         T component = gameObject.GetComponent<T>();
-        return component != null ? component : gameObject.AddComponent<T>();
+        if (component != null)
+        {
+            return component;
+        }
+
+        RemovePlainInteractableBeforeSpecialized(gameObject, typeof(T));
+
+        return gameObject.AddComponent<T>();
+    }
+
+    static Component GetOrAddComponent(GameObject gameObject, System.Type componentType)
+    {
+        Component component = gameObject.GetComponent(componentType);
+        if (component != null)
+        {
+            return component;
+        }
+
+        RemovePlainInteractableBeforeSpecialized(gameObject, componentType);
+        return gameObject.AddComponent(componentType);
+    }
+
+    static void RemovePlainInteractableBeforeSpecialized(GameObject gameObject, System.Type componentType)
+    {
+        if (!typeof(SimpleInteractable).IsAssignableFrom(componentType) || componentType == typeof(SimpleInteractable))
+        {
+            return;
+        }
+
+        SimpleInteractable[] interactables = gameObject.GetComponents<SimpleInteractable>();
+        for (int i = 0; i < interactables.Length; i++)
+        {
+            if (interactables[i] != null && interactables[i].GetType() == typeof(SimpleInteractable))
+            {
+                Object.DestroyImmediate(interactables[i]);
+            }
+        }
     }
 }
 
