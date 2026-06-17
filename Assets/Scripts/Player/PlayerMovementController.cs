@@ -847,6 +847,109 @@ public class KingdomStewardInteractable : SimpleInteractable
 }
 
 [DisallowMultipleComponent]
+public class ForestWatchtowerInteractable : SimpleInteractable
+{
+    [SerializeField] Color ruinedColor = new Color(0.24f, 0.18f, 0.12f);
+    [SerializeField] Color restoredColor = new Color(0.5f, 0.38f, 0.2f);
+
+    SpriteRenderer[] renderers;
+    bool lastRestoredState;
+
+    void Awake()
+    {
+        renderers = GetComponentsInChildren<SpriteRenderer>(true);
+        lastRestoredState = !KingdomStewardInteractable.IsForestWatchtowerRestored;
+        RefreshVisualState();
+    }
+
+    void Update()
+    {
+        if (lastRestoredState != KingdomStewardInteractable.IsForestWatchtowerRestored)
+        {
+            RefreshVisualState();
+        }
+    }
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        if (KingdomStewardInteractable.IsForestWatchtowerRestored)
+        {
+            player?.ShowDialogue("Forest Watchtower", new[]
+            {
+                "The Forest Watchtower stands repaired.",
+                "A scout watches the treeline and keeps the kingdom road safer."
+            });
+            return;
+        }
+
+        player?.ShowDialogue("Ruined Watchtower", new[]
+        {
+            "The Forest Watchtower is broken.",
+            "Clear Lost Woods, claim the Forest chest, then visit the Town Hall Steward to restore it."
+        });
+    }
+
+    void RefreshVisualState()
+    {
+        lastRestoredState = KingdomStewardInteractable.IsForestWatchtowerRestored;
+        Color color = lastRestoredState ? restoredColor : ruinedColor;
+        if (renderers == null || renderers.Length == 0)
+        {
+            renderers = GetComponentsInChildren<SpriteRenderer>(true);
+        }
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] != null)
+            {
+                renderers[i].color = color;
+            }
+        }
+    }
+}
+
+[DisallowMultipleComponent]
+public class ForestScoutInteractable : SimpleInteractable
+{
+    const string FirstReportKey = "RK_ForestScout_FirstReport";
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        if (!KingdomStewardInteractable.IsForestWatchtowerRestored)
+        {
+            player?.ShowDialogue("Forest Scout", new[]
+            {
+                "I cannot patrol properly until the watchtower is repaired.",
+                "Restore it through the Town Hall Steward after clearing Lost Woods."
+            });
+            return;
+        }
+
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (PlayerPrefs.GetInt(FirstReportKey, 0) == 0 && inventory != null)
+        {
+            PlayerPrefs.SetInt(FirstReportKey, 1);
+            PlayerPrefs.Save();
+            inventory.AddExperience(20f);
+            inventory.AddPixicoins(25);
+            inventory.AddMaterial("Life Moss", 1);
+            player.ShowDialogue("Forest Scout", new[]
+            {
+                "First patrol report: the northern road is holding.",
+                "I brought back a little Life Moss and some coin from the old trail."
+            });
+            return;
+        }
+
+        player?.ShowDialogue("Forest Scout", new[]
+        {
+            "The Forest Watchtower is active.",
+            "For now I have no new reports, but this is a good place for daily patrol rewards later."
+        });
+    }
+}
+
+[DisallowMultipleComponent]
 public class WeaponSmithInteractable : SimpleInteractable
 {
     [SerializeField] string requiredMaterial = "Copper Ore";

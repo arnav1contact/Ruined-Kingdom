@@ -275,11 +275,8 @@ public static class MovementPrototypeSceneBuilder
         ConfigureRouteChest(root, "Forest Reward Chest", sprite, new Vector3(-4.5f, 2.6f, 0f), "Forest");
 
         ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
-        ConfigureSimpleInteractable(root, "Ruined Forest Watchtower", sprite, new Vector3(-4.8f, 8.9f, 0f), new Vector3(1.35f, 2.1f, 1f), new Color(0.24f, 0.18f, 0.12f), "Ruined Watchtower", "Inspect", new[]
-        {
-            "The Forest Watchtower is broken.",
-            "Clear Lost Woods, claim the Forest chest, then visit the Town Hall Steward to restore it."
-        }, true);
+        ConfigureForestWatchtower(root, sprite, new Vector3(-4.8f, 8.9f, 0f));
+        ConfigureForestScout(root, sprite, new Vector3(-6.45f, 8.25f, 0f));
         ConfigureSimpleInteractable(root, "Forest Gate Sign", sprite, new Vector3(2.5f, 9.25f, 0f), new Vector3(1.1f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Forest Gate Sign", "Read", new[]
         {
             "Forest Gate",
@@ -788,6 +785,26 @@ public static class MovementPrototypeSceneBuilder
         SetSerializedStringIfPresent(questBoardObject, "displayName", "Route Board");
         SetSerializedStringIfPresent(questBoardObject, "promptText", "Read");
         questBoardObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureForestWatchtower(Transform parent, Sprite sprite, Vector3 position)
+    {
+        GameObject watchtower = ConfigureSimpleInteractable(parent, "Forest Watchtower", sprite, position, new Vector3(1.35f, 2.1f, 1f), new Color(0.24f, 0.18f, 0.12f), "Ruined Watchtower", "Inspect", null, true);
+        ForestWatchtowerInteractable interactable = GetOrAddComponent<ForestWatchtowerInteractable>(watchtower);
+        SerializedObject watchtowerObject = new SerializedObject(interactable);
+        SetSerializedStringIfPresent(watchtowerObject, "displayName", "Forest Watchtower");
+        SetSerializedStringIfPresent(watchtowerObject, "promptText", "Inspect");
+        watchtowerObject.ApplyModifiedProperties();
+    }
+
+    static void ConfigureForestScout(Transform parent, Sprite sprite, Vector3 position)
+    {
+        GameObject scout = ConfigureSimpleInteractable(parent, "Forest Scout", sprite, position, new Vector3(0.65f, 1f, 1f), new Color(0.42f, 0.68f, 0.38f), "Forest Scout", "Talk", null, true);
+        ForestScoutInteractable interactable = GetOrAddComponent<ForestScoutInteractable>(scout);
+        SerializedObject scoutObject = new SerializedObject(interactable);
+        SetSerializedStringIfPresent(scoutObject, "displayName", "Forest Scout");
+        SetSerializedStringIfPresent(scoutObject, "promptText", "Talk");
+        scoutObject.ApplyModifiedProperties();
     }
 
     static void ConfigureKingdomBuildings(Transform parent, Sprite sprite, Transform hubSpawn, CameraAreaBounds2D hubBounds)
