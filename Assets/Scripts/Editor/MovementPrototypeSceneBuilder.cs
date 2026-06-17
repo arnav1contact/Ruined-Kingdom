@@ -18,6 +18,8 @@ public static class MovementPrototypeSceneBuilder
     [MenuItem("Tools/Ruined Kingdom/Create Prototype Scene Set")]
     public static void CreatePrototypeSceneSet()
     {
+        DeleteGeneratedSceneIfExists(KingdomScenePath);
+        DeleteGeneratedSceneIfExists(ForestScenePath);
         CreateKingdomScene();
         CreateForestScene();
         ConfigureBuildSettings();
@@ -104,6 +106,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureCharacterCreationForScene(player, root);
 
         EnsureScenesFolder();
+        CleanMissingScriptsInLoadedScene();
         if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), KingdomScenePath))
         {
             throw new IOException($"Unity failed to save {KingdomScenePath}.");
@@ -133,6 +136,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureSceneSpawnFallback("Forest Entry Spawn", player.transform);
 
         EnsureScenesFolder();
+        CleanMissingScriptsInLoadedScene();
         if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ForestScenePath))
         {
             throw new IOException($"Unity failed to save {ForestScenePath}.");
@@ -193,6 +197,12 @@ public static class MovementPrototypeSceneBuilder
     [MenuItem("Tools/Ruined Kingdom/Clean Missing Scripts In Open Scene")]
     public static void CleanMissingScriptsInOpenScene()
     {
+        int removedCount = CleanMissingScriptsInLoadedScene();
+        Debug.Log($"Removed {removedCount} missing script reference(s) from the open scene.");
+    }
+
+    static int CleanMissingScriptsInLoadedScene()
+    {
         int removedCount = 0;
         GameObject[] objects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
         for (int i = 0; i < objects.Length; i++)
@@ -205,7 +215,7 @@ public static class MovementPrototypeSceneBuilder
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        Debug.Log($"Removed {removedCount} missing script reference(s) from the open scene.");
+        return removedCount;
     }
 
     static GameObject ConfigurePlayer(Sprite playerSprite, InputActionReference moveReference, InputActionReference attackReference)
@@ -497,6 +507,19 @@ public static class MovementPrototypeSceneBuilder
         if (!AssetDatabase.IsValidFolder("Assets/Scenes"))
         {
             AssetDatabase.CreateFolder("Assets", "Scenes");
+        }
+    }
+
+    static void DeleteGeneratedSceneIfExists(string scenePath)
+    {
+        if (!File.Exists(scenePath))
+        {
+            return;
+        }
+
+        if (!AssetDatabase.DeleteAsset(scenePath))
+        {
+            throw new IOException($"Could not delete stale generated scene at {scenePath}.");
         }
     }
 
