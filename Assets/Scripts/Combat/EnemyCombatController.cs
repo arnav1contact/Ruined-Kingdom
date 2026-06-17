@@ -257,6 +257,7 @@ public static class RouteObjectiveManager
         {
             route.Completed = true;
             route.RewardClaimed = false;
+            SaveRoute(routeName, route);
             ToastHudController.Show($"{routeName} route clear");
         }
     }
@@ -277,22 +278,35 @@ public static class RouteObjectiveManager
         route.Completed = true;
         route.RewardClaimed = false;
         route.TotalEnemies = Mathf.Max(route.TotalEnemies, route.DefeatedEnemies);
+        SaveRoute(routeName, route);
         ToastHudController.Show($"{routeName} route clear");
     }
 
     public static bool IsRouteComplete(string routeName)
     {
-        return routes.TryGetValue(routeName, out RouteProgress route) && route.Completed;
+        if (string.IsNullOrWhiteSpace(routeName))
+        {
+            return false;
+        }
+
+        return GetOrCreate(routeName).Completed;
     }
 
     public static bool TryClaimRouteReward(string routeName, PlayerInventoryHudController inventory)
     {
-        if (inventory == null || !routes.TryGetValue(routeName, out RouteProgress route) || !route.Completed || route.RewardClaimed)
+        if (inventory == null || string.IsNullOrWhiteSpace(routeName))
+        {
+            return false;
+        }
+
+        RouteProgress route = GetOrCreate(routeName);
+        if (!route.Completed || route.RewardClaimed)
         {
             return false;
         }
 
         route.RewardClaimed = true;
+        SaveRoute(routeName, route);
         inventory.AddExperience(25f);
         inventory.AddPixicoins(40);
         inventory.AddMaterial($"{routeName} Route Badge", 1);
@@ -302,7 +316,8 @@ public static class RouteObjectiveManager
 
     public static string GetQuestBoardText()
     {
-        if (routes.Count == 0)
+        RouteProgress forest = GetOrCreate("Forest");
+        if (routes.Count == 1 && !forest.Completed && forest.TotalEnemies == 0)
         {
             return "Forest: enter the Lost Woods and find the correct path to clear the first route.";
         }
@@ -322,11 +337,36 @@ public static class RouteObjectiveManager
     {
         if (!routes.TryGetValue(routeName, out RouteProgress route))
         {
-            route = new RouteProgress();
+            route = LoadRoute(routeName);
             routes[routeName] = route;
         }
 
         return route;
+    }
+
+    static RouteProgress LoadRoute(string routeName)
+    {
+        return new RouteProgress
+        {
+            TotalEnemies = PlayerPrefs.GetInt(GetRouteKey(routeName, "Total"), 0),
+            DefeatedEnemies = PlayerPrefs.GetInt(GetRouteKey(routeName, "Defeated"), 0),
+            Completed = PlayerPrefs.GetInt(GetRouteKey(routeName, "Complete"), 0) == 1,
+            RewardClaimed = PlayerPrefs.GetInt(GetRouteKey(routeName, "RewardClaimed"), 0) == 1
+        };
+    }
+
+    static void SaveRoute(string routeName, RouteProgress route)
+    {
+        PlayerPrefs.SetInt(GetRouteKey(routeName, "Total"), route.TotalEnemies);
+        PlayerPrefs.SetInt(GetRouteKey(routeName, "Defeated"), route.DefeatedEnemies);
+        PlayerPrefs.SetInt(GetRouteKey(routeName, "Complete"), route.Completed ? 1 : 0);
+        PlayerPrefs.SetInt(GetRouteKey(routeName, "RewardClaimed"), route.RewardClaimed ? 1 : 0);
+        PlayerPrefs.Save();
+    }
+
+    static string GetRouteKey(string routeName, string suffix)
+    {
+        return $"RK_Route_{routeName}_{suffix}";
     }
 
     sealed class RouteProgress
