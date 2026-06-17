@@ -81,6 +81,48 @@ public static class MovementPrototypeSceneBuilder
         CreatePrototypeSceneSet();
     }
 
+    [MenuItem("Tools/Ruined Kingdom/Reset Prototype Progress")]
+    public static void ResetPrototypeProgress()
+    {
+        string[] keys =
+        {
+            "RK_Level",
+            "RK_Experience",
+            "RK_ExperienceToNext",
+            "RK_Pixicoins",
+            "RK_Restore_ForestWatchtower",
+            "RK_ForestScout_FirstReport",
+            "RK_Route_Forest_Total",
+            "RK_Route_Forest_Defeated",
+            "RK_Route_Forest_Complete",
+            "RK_Route_Forest_RewardClaimed",
+            "RK_Route_Sea_Total",
+            "RK_Route_Sea_Defeated",
+            "RK_Route_Sea_Complete",
+            "RK_Route_Sea_RewardClaimed",
+            "RK_Route_Desert_Total",
+            "RK_Route_Desert_Defeated",
+            "RK_Route_Desert_Complete",
+            "RK_Route_Desert_RewardClaimed",
+            "RK_Route_Volcano_Total",
+            "RK_Route_Volcano_Defeated",
+            "RK_Route_Volcano_Complete",
+            "RK_Route_Volcano_RewardClaimed",
+            "RK_Route_Ruins_Total",
+            "RK_Route_Ruins_Defeated",
+            "RK_Route_Ruins_Complete",
+            "RK_Route_Ruins_RewardClaimed"
+        };
+
+        for (int i = 0; i < keys.Length; i++)
+        {
+            PlayerPrefs.DeleteKey(keys[i]);
+        }
+
+        PlayerPrefs.Save();
+        Debug.Log("Ruined Kingdom prototype progress reset.");
+    }
+
     static GameObject ConfigurePlayer(Sprite playerSprite, InputActionReference moveReference, InputActionReference attackReference)
     {
         GameObject player = GetOrCreateGameObject("Player", Vector3.zero);
