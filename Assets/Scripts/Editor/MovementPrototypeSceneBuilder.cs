@@ -24,6 +24,27 @@ public static class MovementPrototypeSceneBuilder
         EditorSceneManager.OpenScene(KingdomScenePath);
     }
 
+    [MenuItem("Tools/Ruined Kingdom/Prepare Full Playtest")]
+    public static void PrepareFullPlaytest()
+    {
+        ResetPrototypeProgress();
+        CreatePrototypeSceneSet();
+        Debug.Log("Ruined Kingdom full playtest prepared. Press Play from Assets/Scenes/Kingdom.unity.");
+    }
+
+    [MenuItem("Tools/Ruined Kingdom/Open Kingdom Start Scene")]
+    public static void OpenKingdomStartScene()
+    {
+        if (!File.Exists(KingdomScenePath) || !File.Exists(ForestScenePath))
+        {
+            CreatePrototypeSceneSet();
+            return;
+        }
+
+        ConfigureBuildSettings();
+        EditorSceneManager.OpenScene(KingdomScenePath);
+    }
+
     [MenuItem("Tools/Ruined Kingdom/Create Kingdom Scene")]
     public static void CreateKingdomScene()
     {
@@ -121,6 +142,24 @@ public static class MovementPrototypeSceneBuilder
 
         PlayerPrefs.Save();
         Debug.Log("Ruined Kingdom prototype progress reset.");
+    }
+
+    [MenuItem("Tools/Ruined Kingdom/Clean Missing Scripts In Open Scene")]
+    public static void CleanMissingScriptsInOpenScene()
+    {
+        int removedCount = 0;
+        GameObject[] objects = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None);
+        for (int i = 0; i < objects.Length; i++)
+        {
+            removedCount += GameObjectUtility.RemoveMonoBehavioursWithMissingScript(objects[i]);
+        }
+
+        if (removedCount > 0)
+        {
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        }
+
+        Debug.Log($"Removed {removedCount} missing script reference(s) from the open scene.");
     }
 
     static GameObject ConfigurePlayer(Sprite playerSprite, InputActionReference moveReference, InputActionReference attackReference)
@@ -1409,5 +1448,35 @@ public static class MovementPrototypeSceneBuilder
     {
         T component = gameObject.GetComponent<T>();
         return component != null ? component : gameObject.AddComponent<T>();
+    }
+}
+
+[InitializeOnLoad]
+public static class RuinedKingdomPlayModeGuard
+{
+    static RuinedKingdomPlayModeGuard()
+    {
+        EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+    }
+
+    static void OnPlayModeStateChanged(PlayModeStateChange state)
+    {
+        if (state != PlayModeStateChange.ExitingEditMode)
+        {
+            return;
+        }
+
+        Scene activeScene = SceneManager.GetActiveScene();
+        if (activeScene.path == "Assets/Scenes/Kingdom.unity" || activeScene.path == "Assets/Scenes/Forest.unity")
+        {
+            return;
+        }
+
+        EditorApplication.isPlaying = false;
+        MovementPrototypeSceneBuilder.OpenKingdomStartScene();
+        EditorUtility.DisplayDialog(
+            "Ruined Kingdom Start Scene",
+            "Opened the generated Kingdom start scene. Press Play again to test the main game flow.",
+            "OK");
     }
 }

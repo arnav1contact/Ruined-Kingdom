@@ -532,7 +532,7 @@ public class SceneTransitionPromptController : MonoBehaviour
         Keyboard keyboard = Keyboard.current;
         Gamepad gamepad = Gamepad.current;
 
-        if (keyboard != null && (keyboard.yKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame)
+        if (keyboard != null && (keyboard.yKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame)
             || gamepad != null && gamepad.buttonSouth.wasPressedThisFrame)
         {
             Confirm();
@@ -557,13 +557,14 @@ public class SceneTransitionPromptController : MonoBehaviour
         GUI.Box(panel, "");
         GUI.Label(new Rect(panel.x + 18f, panel.y + 18f, panel.width - 36f, 34f), title, titleStyle);
         GUI.Label(new Rect(panel.x + 18f, panel.y + 58f, panel.width - 36f, 44f), body, bodyStyle);
+        GUI.Label(new Rect(panel.x + 18f, panel.y + 98f, panel.width - 36f, 20f), "E / Y / Enter confirms.  N / Esc cancels.", bodyStyle);
 
-        if (GUI.Button(new Rect(panel.x + 58f, panel.y + 118f, 140f, 38f), "Yes"))
+        if (GUI.Button(new Rect(panel.x + 58f, panel.y + 128f, 140f, 34f), "Yes"))
         {
             Confirm();
         }
 
-        if (GUI.Button(new Rect(panel.xMax - 198f, panel.y + 118f, 140f, 38f), "No"))
+        if (GUI.Button(new Rect(panel.xMax - 198f, panel.y + 128f, 140f, 34f), "No"))
         {
             Cancel();
         }
