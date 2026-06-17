@@ -324,20 +324,13 @@ public static class MovementPrototypeSceneBuilder
         ConfigureProp(root, "Old Forest Stump", sprite, new Vector3(-2.4f, 4.6f, 0f), new Vector3(1.15f, 0.65f, 1f), new Color(0.24f, 0.13f, 0.05f));
         ConfigureProp(root, "Life Moss Patch", sprite, new Vector3(2.4f, 4.1f, 0f), new Vector3(1.6f, 0.55f, 1f), new Color(0.2f, 0.72f, 0.25f));
 
-        GameObject chest = ConfigureSimpleInteractable(root, "Forest Entry Chest", sprite, new Vector3(3.6f, -3.9f, 0f), new Vector3(0.75f, 0.55f, 1f), new Color(0.45f, 0.25f, 0.1f), "Forest Chest", "Open", null, true);
-        ForestLootChestInteractable forestChest = GetOrAddComponent<ForestLootChestInteractable>(chest);
-        SerializedObject chestObject = new SerializedObject(forestChest);
-        SetSerializedStringIfPresent(chestObject, "displayName", "Forest Chest");
-        SetSerializedStringIfPresent(chestObject, "promptText", "Open");
-        chestObject.ApplyModifiedProperties();
-
         ConfigureSimpleInteractable(root, "Lost Woods Sign", sprite, new Vector3(2.65f, 6.15f, 0f), new Vector3(1.2f, 0.7f, 1f), new Color(0.22f, 0.12f, 0.06f), "Lost Woods Sign", "Read", new[]
         {
             "Lost Woods",
             "Use the dark marker in the clearing to enter the generated minigame."
         }, true);
 
-        ConfigureLostWoodsDungeon(root, sprite, player.transform, new Vector3(0f, 24f, 0f), new Vector3(0f, 6.4f, 0f));
+        ConfigureLostWoodsDungeon(root, sprite, player.transform, new Vector3(0f, 24f, 0f), new Vector3(0f, 6.4f, 0f), root.Find("Forest Entry Spawn"), forestBounds);
     }
 
     static void ConfigureCharacterCreationForScene(GameObject player, GameObject gameplayRoot)
@@ -925,7 +918,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureLostWoodsDungeon(parent, sprite, player, center + new Vector3(0f, 18f, 0f), center + new Vector3(0f, 6.2f, 0f));
     }
 
-    static void ConfigureLostWoodsDungeon(Transform parent, Sprite sprite, Transform player, Vector3 dungeonCenter, Vector3 entrancePosition)
+    static void ConfigureLostWoodsDungeon(Transform parent, Sprite sprite, Transform player, Vector3 dungeonCenter, Vector3 entrancePosition, Transform completionSpawn = null, CameraAreaBounds2D completionBounds = null)
     {
         GameObject dungeon = GetOrCreateChild(parent, "Lost Woods Dungeon", dungeonCenter);
         ConfigureGroundPatch(dungeon.transform, "Lost Woods Room Ground", sprite, Vector3.zero, new Vector3(13f, 8.5f, 1f), new Color(0.07f, 0.28f, 0.11f));
@@ -973,7 +966,9 @@ public static class MovementPrototypeSceneBuilder
 
         SerializedObject controllerObject = new SerializedObject(controller);
         controllerObject.FindProperty("playerSpawn").objectReferenceValue = spawn;
+        controllerObject.FindProperty("completionSpawn").objectReferenceValue = completionSpawn;
         controllerObject.FindProperty("cameraBounds").objectReferenceValue = bounds;
+        controllerObject.FindProperty("completionBounds").objectReferenceValue = completionBounds;
         SetObjectArray(controllerObject.FindProperty("treeProps"), treeProps);
         SetObjectArray(controllerObject.FindProperty("enemies"), enemies);
         SetObjectArray(controllerObject.FindProperty("chests"), chests);

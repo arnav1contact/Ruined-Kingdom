@@ -883,13 +883,19 @@ public class LostWoodsGateInteractable : SimpleInteractable
 public class LostWoodsDungeonController : MonoBehaviour
 {
     [SerializeField] Transform playerSpawn = null;
+    [SerializeField] Transform completionSpawn = null;
     [SerializeField] CameraAreaBounds2D cameraBounds = null;
+    [SerializeField] CameraAreaBounds2D completionBounds = null;
     [SerializeField] GameObject[] treeProps = null;
     [SerializeField] GameObject[] enemies = null;
     [SerializeField] GameObject[] chests = null;
     [SerializeField] int targetDepth = 5;
     [SerializeField] int currentDepth;
     [SerializeField] bool leftIsCorrect;
+    [SerializeField] string currentHint = "The woods are quiet.";
+    [SerializeField] string currentRoomType = "Quiet";
+
+    GUIStyle hudStyle;
 
     public void Begin(PlayerInteractionController player)
     {
@@ -939,8 +945,12 @@ public class LostWoodsDungeonController : MonoBehaviour
         player?.ShowDialogue("Lost Woods", new[]
         {
             "You found the end of the winding forest path.",
-            "Copper, life moss, and a forest sigil are yours."
+            "Copper, life moss, and a forest sigil are yours.",
+            "The woods loosen their grip and return you to the forest clearing."
         });
+
+        MovePlayerToCompletion(player);
+        ToastHudController.Show("Forest route cleared");
     }
 
     void MovePlayerToRoom(PlayerInteractionController player)
@@ -966,9 +976,22 @@ public class LostWoodsDungeonController : MonoBehaviour
     void RegenerateRoom(PlayerInteractionController player)
     {
         leftIsCorrect = Random.value > 0.5f;
-        RandomizeProps(treeProps, 18, new Vector2(-4.8f, 4.8f), new Vector2(-2.8f, 3.2f));
-        RandomizeProps(chests, Random.value > 0.45f ? 1 : 0, new Vector2(-3.7f, 3.7f), new Vector2(-1.7f, 2.35f));
-        RandomizeEnemies(player == null ? null : player.transform);
+        currentHint = leftIsCorrect ? "The moss leans left." : "The wind pulls right.";
+
+        int roomRoll = Random.Range(0, 4);
+        currentRoomType = roomRoll switch
+        {
+            0 => "Quiet",
+            1 => "Enemy",
+            2 => "Chest",
+            _ => "Dense Woods"
+        };
+
+        int treeCount = currentRoomType == "Dense Woods" ? 22 : 16;
+        RandomizeProps(treeProps, treeCount, new Vector2(-4.8f, 4.8f), new Vector2(-2.8f, 3.2f));
+        RandomizeProps(chests, currentRoomType == "Chest" || Random.value > 0.72f ? 1 : 0, new Vector2(-3.7f, 3.7f), new Vector2(-1.7f, 2.35f));
+        RandomizeEnemies(player == null ? null : player.transform, currentRoomType == "Enemy");
+        ToastHudController.Show($"Lost Woods: {currentRoomType}");
     }
 
     void RandomizeProps(GameObject[] props, int activeCount, Vector2 xRange, Vector2 yRange)
@@ -991,14 +1014,14 @@ public class LostWoodsDungeonController : MonoBehaviour
         }
     }
 
-    void RandomizeEnemies(Transform player)
+    void RandomizeEnemies(Transform player, bool forceEnemies)
     {
         if (enemies == null)
         {
             return;
         }
 
-        int activeCount = Mathf.Clamp(1 + currentDepth / 2 + Random.Range(0, 2), 1, enemies.Length);
+        int activeCount = forceEnemies ? Mathf.Clamp(1 + currentDepth / 2 + Random.Range(0, 2), 1, enemies.Length) : Random.value > 0.65f ? 1 : 0;
         for (int i = 0; i < enemies.Length; i++)
         {
             bool active = i < activeCount;
@@ -1019,6 +1042,50 @@ public class LostWoodsDungeonController : MonoBehaviour
                 enemy.SetTarget(player);
             }
         }
+    }
+
+    void MovePlayerToCompletion(PlayerInteractionController player)
+    {
+        if (player == null || completionSpawn == null)
+        {
+            return;
+        }
+
+        Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.position = completionSpawn.position;
+            rb.linearVelocity = Vector2.zero;
+        }
+
+        player.transform.position = completionSpawn.position;
+
+        CameraFollow2D follow = Camera.main == null ? null : Camera.main.GetComponent<CameraFollow2D>();
+        completionBounds?.ApplyTo(follow);
+    }
+
+    void OnGUI()
+    {
+        if (currentDepth <= 0 && !IsPlayerNearDungeon())
+        {
+            return;
+        }
+
+        hudStyle ??= new GUIStyle(GUI.skin.box)
+        {
+            alignment = TextAnchor.MiddleLeft,
+            fontSize = 15,
+            padding = new RectOffset(10, 8, 4, 4),
+            normal = { textColor = Color.white }
+        };
+
+        GUI.Box(new Rect(18f, 204f, 280f, 74f), $"Lost Woods Depth: {currentDepth}/{targetDepth}\nRoom: {currentRoomType}\nHint: {currentHint}", hudStyle);
+    }
+
+    bool IsPlayerNearDungeon()
+    {
+        PlayerMovementController player = FindFirstObjectByType<PlayerMovementController>();
+        return player != null && Vector2.Distance(player.transform.position, transform.position) < 8f;
     }
 }
 
