@@ -24,7 +24,9 @@ public static class MovementPrototypeSceneBuilder
         EditorSceneManager.OpenScene(KingdomScenePath);
     }
 
+    [MenuItem("Tools/Ruined Kingdom/0 Prepare Full Playtest")]
     [MenuItem("Tools/Ruined Kingdom/Prepare Full Playtest")]
+    [MenuItem("Ruined Kingdom/Prepare Full Playtest")]
     public static void PrepareFullPlaytest()
     {
         ResetPrototypeProgress();
@@ -32,6 +34,7 @@ public static class MovementPrototypeSceneBuilder
         Debug.Log("Ruined Kingdom full playtest prepared. Press Play from Assets/Scenes/Kingdom.unity.");
     }
 
+    [MenuItem("Ruined Kingdom/Open Kingdom Start Scene")]
     [MenuItem("Tools/Ruined Kingdom/Open Kingdom Start Scene")]
     public static void OpenKingdomStartScene()
     {
