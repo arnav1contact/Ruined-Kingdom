@@ -562,6 +562,7 @@ public class PlayerInventoryHudController : MonoBehaviour
     bool inventoryOpen;
     WeaponType heldItem;
     bool hasLoadedPrototypeData;
+    bool restorationVitalityBonusApplied;
 
     readonly Key[] hotbarKeys =
     {
@@ -593,6 +594,7 @@ public class PlayerInventoryHudController : MonoBehaviour
         }
 
         InitializeDefaultItems();
+        EnsureRestorationBonusesApplied();
     }
 
     void Update()
@@ -860,6 +862,23 @@ public class PlayerInventoryHudController : MonoBehaviour
         ToastHudController.Show($"+{amount} Pixicoins");
     }
 
+    public bool TrySpendPixicoins(int amount)
+    {
+        if (amount <= 0)
+        {
+            return true;
+        }
+
+        if (pixicoins < amount)
+        {
+            return false;
+        }
+
+        pixicoins -= amount;
+        ToastHudController.Show($"Spent {amount} Pixicoins");
+        return true;
+    }
+
     public void AddExperience(float amount)
     {
         if (amount <= 0f)
@@ -989,6 +1008,32 @@ public class PlayerInventoryHudController : MonoBehaviour
         health?.Refill();
         stamina?.Refill();
         ToastHudController.Show("Recovered HP and stamina");
+    }
+
+    public void ApplyRestorationVitalityBonus(float healthBonus, float staminaBonus)
+    {
+        ApplyRestorationVitalityBonus(healthBonus, staminaBonus, true);
+    }
+
+    public void EnsureRestorationBonusesApplied()
+    {
+        if (restorationVitalityBonusApplied || !KingdomStewardInteractable.IsForestWatchtowerRestored)
+        {
+            return;
+        }
+
+        ApplyRestorationVitalityBonus(8f, 6f, false);
+    }
+
+    void ApplyRestorationVitalityBonus(float healthBonus, float staminaBonus, bool showToast)
+    {
+        restorationVitalityBonusApplied = true;
+        health?.IncreaseMaxHealth(healthBonus, true);
+        stamina?.IncreaseMaxStamina(staminaBonus, true);
+        if (showToast)
+        {
+            ToastHudController.Show("Kingdom restoration bonus applied");
+        }
     }
 
     void LevelUp()

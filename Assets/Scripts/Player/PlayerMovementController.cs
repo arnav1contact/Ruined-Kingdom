@@ -782,6 +782,71 @@ public class HubServiceInteractable : SimpleInteractable
 }
 
 [DisallowMultipleComponent]
+public class KingdomStewardInteractable : SimpleInteractable
+{
+    const string RestorationKey = "RK_Restore_ForestWatchtower";
+    const int RequiredPixicoins = 120;
+    const int RequiredCopperOre = 2;
+    const string RequiredBadge = "Forest Route Badge";
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        PlayerInventoryHudController inventory = player == null ? null : player.GetComponent<PlayerInventoryHudController>();
+        if (inventory == null)
+        {
+            return;
+        }
+
+        if (IsForestWatchtowerRestored)
+        {
+            player.ShowDialogue("Kingdom Steward", new[]
+            {
+                "The Forest Watchtower is already restored.",
+                "Scouts are watching the northern road, and your patrol training bonus is active."
+            });
+            return;
+        }
+
+        if (!RouteObjectiveManager.IsRouteComplete("Forest"))
+        {
+            player.ShowDialogue("Kingdom Steward", new[]
+            {
+                "The northern watchtower cannot be restored yet.",
+                "Clear the Lost Woods route first so workers can travel safely."
+            });
+            return;
+        }
+
+        if (!inventory.HasMaterial(RequiredBadge, 1) || !inventory.HasMaterial("Copper Ore", RequiredCopperOre) || inventory.Pixicoins < RequiredPixicoins)
+        {
+            player.ShowDialogue("Kingdom Steward", new[]
+            {
+                "I can restore the Forest Watchtower with:",
+                $"{RequiredPixicoins} Pixicoins, {RequiredCopperOre} Copper Ore, and 1 {RequiredBadge}.",
+                "Claim the Forest chest if you have not collected the badge yet."
+            });
+            return;
+        }
+
+        inventory.TrySpendPixicoins(RequiredPixicoins);
+        inventory.TrySpendMaterial("Copper Ore", RequiredCopperOre);
+        inventory.TrySpendMaterial(RequiredBadge, 1);
+        inventory.ApplyRestorationVitalityBonus(8f, 6f);
+        PlayerPrefs.SetInt(RestorationKey, 1);
+        PlayerPrefs.Save();
+
+        player.ShowDialogue("Kingdom Steward", new[]
+        {
+            "The Forest Watchtower is restored.",
+            "Northern patrols are active, and your route discipline improves.",
+            "Max HP and max stamina increased."
+        });
+    }
+
+    public static bool IsForestWatchtowerRestored => PlayerPrefs.GetInt(RestorationKey, 0) == 1;
+}
+
+[DisallowMultipleComponent]
 public class WeaponSmithInteractable : SimpleInteractable
 {
     [SerializeField] string requiredMaterial = "Copper Ore";

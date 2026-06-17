@@ -265,7 +265,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureBuilding(root, sprite, "Healer Hall", new Vector3(8.6f, 5.8f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.55f, 0.75f, 0.82f), new Vector3(62f, 0f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Healer", typeof(HealerServiceInteractable), "Healer");
         ConfigureBuilding(root, sprite, "Inn", new Vector3(-8.7f, -5.6f, 0f), new Vector3(3.4f, 2.1f, 1f), new Color(0.42f, 0.25f, 0.16f), new Vector3(42f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Inn", typeof(HubServiceInteractable), "Innkeeper");
         ConfigureBuilding(root, sprite, "Alchemist", new Vector3(8.7f, -5.6f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.35f, 0.24f, 0.52f), new Vector3(52f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Alchemist", typeof(HubServiceInteractable), "Alchemist");
-        ConfigureBuilding(root, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Town Hall", typeof(HubServiceInteractable), "Steward");
+        ConfigureBuilding(root, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Town Hall", typeof(KingdomStewardInteractable), "Kingdom Steward");
         ConfigureBuilding(root, sprite, "Armory", new Vector3(-13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.22f, 0.24f, 0.28f), new Vector3(42f, -20f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Armory", typeof(HubServiceInteractable), "Armorer");
         ConfigureBuilding(root, sprite, "Storehouse", new Vector3(13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.46f, 0.32f, 0.18f), new Vector3(52f, -20f, 0f), root.Find("Kingdom Player Spawn"), hubBounds, "Enter Storehouse", typeof(HubServiceInteractable), "Quartermaster");
 
@@ -275,6 +275,11 @@ public static class MovementPrototypeSceneBuilder
         ConfigureRouteChest(root, "Forest Reward Chest", sprite, new Vector3(-4.5f, 2.6f, 0f), "Forest");
 
         ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
+        ConfigureSimpleInteractable(root, "Ruined Forest Watchtower", sprite, new Vector3(-4.8f, 8.9f, 0f), new Vector3(1.35f, 2.1f, 1f), new Color(0.24f, 0.18f, 0.12f), "Ruined Watchtower", "Inspect", new[]
+        {
+            "The Forest Watchtower is broken.",
+            "Clear Lost Woods, claim the Forest chest, then visit the Town Hall Steward to restore it."
+        }, true);
         ConfigureSimpleInteractable(root, "Forest Gate Sign", sprite, new Vector3(2.5f, 9.25f, 0f), new Vector3(1.1f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Forest Gate Sign", "Read", new[]
         {
             "Forest Gate",
@@ -792,7 +797,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureBuilding(parent, sprite, "Healer Hall", new Vector3(8.6f, 5.8f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.55f, 0.75f, 0.82f), new Vector3(62f, 0f, 0f), hubSpawn, hubBounds, "Enter Healer", typeof(HealerServiceInteractable), "Healer");
         ConfigureBuilding(parent, sprite, "Inn", new Vector3(-8.7f, -5.6f, 0f), new Vector3(3.4f, 2.1f, 1f), new Color(0.42f, 0.25f, 0.16f), new Vector3(42f, -10f, 0f), hubSpawn, hubBounds, "Enter Inn", typeof(HubServiceInteractable), "Innkeeper");
         ConfigureBuilding(parent, sprite, "Alchemist", new Vector3(8.7f, -5.6f, 0f), new Vector3(3.1f, 2f, 1f), new Color(0.35f, 0.24f, 0.52f), new Vector3(52f, -10f, 0f), hubSpawn, hubBounds, "Enter Alchemist", typeof(HubServiceInteractable), "Alchemist");
-        ConfigureBuilding(parent, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), hubSpawn, hubBounds, "Enter Town Hall", typeof(HubServiceInteractable), "Steward");
+        ConfigureBuilding(parent, sprite, "Town Hall", new Vector3(4.35f, -6.6f, 0f), new Vector3(4.2f, 2.45f, 1f), new Color(0.5f, 0.45f, 0.32f), new Vector3(62f, -10f, 0f), hubSpawn, hubBounds, "Enter Town Hall", typeof(KingdomStewardInteractable), "Kingdom Steward");
         ConfigureBuilding(parent, sprite, "Armory", new Vector3(-13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.22f, 0.24f, 0.28f), new Vector3(42f, -20f, 0f), hubSpawn, hubBounds, "Enter Armory", typeof(HubServiceInteractable), "Armorer");
         ConfigureBuilding(parent, sprite, "Storehouse", new Vector3(13f, 2.2f, 0f), new Vector3(2.8f, 1.8f, 1f), new Color(0.46f, 0.32f, 0.18f), new Vector3(52f, -20f, 0f), hubSpawn, hubBounds, "Enter Storehouse", typeof(HubServiceInteractable), "Quartermaster");
 
