@@ -761,7 +761,7 @@ public class RouteRewardChestInteractable : SimpleInteractable
         }
         else
         {
-            player?.ShowDialogue($"{routeName} Chest", new[] { $"Clear the {routeName} route enemies first." });
+            player?.ShowDialogue($"{routeName} Chest", new[] { $"Clear the {routeName} route first." });
         }
     }
 }
@@ -798,10 +798,11 @@ public class WeaponSmithInteractable : SimpleInteractable
 
         if (inventory.TrySpendMaterial(requiredMaterial, requiredCount))
         {
-            inventory.RewardWeaponPractice(practicedWeapon);
+            WeaponType weaponToPractice = inventory.SelectedWeapon == WeaponType.None ? practicedWeapon : inventory.SelectedWeapon;
+            inventory.RewardWeaponPractice(weaponToPractice);
             player.ShowDialogue("Royal Blacksmith", new[]
             {
-                $"I reforged your {practicedWeapon} drills with {requiredMaterial}.",
+                $"I reforged your {weaponToPractice} drills with {requiredMaterial}.",
                 "For now this raises the matching weapon rank as a prototype upgrade."
             });
             return;
@@ -941,6 +942,8 @@ public class LostWoodsDungeonController : MonoBehaviour
             inventory.AddMaterial("Life Moss", 3);
             inventory.AddMaterial("Forest Sigil", 1);
         }
+
+        RouteObjectiveManager.MarkRouteComplete("Forest");
 
         player?.ShowDialogue("Lost Woods", new[]
         {

@@ -261,6 +261,25 @@ public static class RouteObjectiveManager
         }
     }
 
+    public static void MarkRouteComplete(string routeName)
+    {
+        if (string.IsNullOrWhiteSpace(routeName))
+        {
+            return;
+        }
+
+        RouteProgress route = GetOrCreate(routeName);
+        if (route.Completed)
+        {
+            return;
+        }
+
+        route.Completed = true;
+        route.RewardClaimed = false;
+        route.TotalEnemies = Mathf.Max(route.TotalEnemies, route.DefeatedEnemies);
+        ToastHudController.Show($"{routeName} route clear");
+    }
+
     public static bool IsRouteComplete(string routeName)
     {
         return routes.TryGetValue(routeName, out RouteProgress route) && route.Completed;
@@ -285,7 +304,7 @@ public static class RouteObjectiveManager
     {
         if (routes.Count == 0)
         {
-            return "Routes are not registered yet. Rebuild the movement test room.";
+            return "Forest: enter the Lost Woods and find the correct path to clear the first route.";
         }
 
         System.Text.StringBuilder builder = new System.Text.StringBuilder();

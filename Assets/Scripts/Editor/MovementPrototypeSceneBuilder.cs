@@ -271,6 +271,8 @@ public static class MovementPrototypeSceneBuilder
 
         ConfigureHubService(root, "Healer Shrine", sprite, new Vector3(4.75f, -1.65f, 0f), new Vector3(0.9f, 0.9f, 1f), new Color(0.7f, 0.95f, 1f), "Healer Shrine", "Recover", typeof(HealerServiceInteractable));
         ConfigureTrainingDummy(root, sprite, new Vector3(6.15f, -1.95f, 0f));
+        ConfigureRouteBoard(root, sprite, new Vector3(-3.9f, -1.15f, 0f));
+        ConfigureRouteChest(root, "Forest Reward Chest", sprite, new Vector3(-4.5f, 2.6f, 0f), "Forest");
 
         ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
         ConfigureSimpleInteractable(root, "Forest Gate Sign", sprite, new Vector3(2.5f, 9.25f, 0f), new Vector3(1.1f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Forest Gate Sign", "Read", new[]
@@ -766,7 +768,12 @@ public static class MovementPrototypeSceneBuilder
         ConfigureGroundPatch(parent, "Market Yard", sprite, new Vector3(6.8f, 4.5f, 0f), new Vector3(7f, 4f, 1f), new Color(0.28f, 0.42f, 0.28f));
         ConfigureGroundPatch(parent, "Crafting Yard", sprite, new Vector3(-6.8f, 4.5f, 0f), new Vector3(7f, 4f, 1f), new Color(0.32f, 0.31f, 0.26f));
 
-        GameObject noticeBoard = ConfigureSimpleInteractable(parent, "Kingdom Route Board", sprite, new Vector3(-3.9f, -1.15f, 0f), new Vector3(1.15f, 0.75f, 1f), new Color(0.28f, 0.18f, 0.08f), "Route Board", "Read", new[]
+        ConfigureRouteBoard(parent, sprite, new Vector3(-3.9f, -1.15f, 0f));
+    }
+
+    static void ConfigureRouteBoard(Transform parent, Sprite sprite, Vector3 position)
+    {
+        GameObject noticeBoard = ConfigureSimpleInteractable(parent, "Kingdom Route Board", sprite, position, new Vector3(1.15f, 0.75f, 1f), new Color(0.28f, 0.18f, 0.08f), "Route Board", "Read", new[]
         {
             "Ruined Kingdom loop target: gear up in the hub, choose a route, fight through danger, bring resources home, unlock the kingdom.",
             "Current focus: kingdom services and the northern forest."
