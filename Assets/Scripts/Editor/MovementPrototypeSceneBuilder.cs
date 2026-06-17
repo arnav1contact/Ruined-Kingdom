@@ -411,7 +411,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureRouteBoard(root, sprite, new Vector3(-3.9f, -1.15f, 0f));
         ConfigureRouteChest(root, "Forest Reward Chest", sprite, new Vector3(-4.5f, 2.6f, 0f), "Forest");
 
-        ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
+        ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 9.35f, 0f), new Vector3(4.4f, 2.25f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
         ConfigureForestWatchtower(root, sprite, new Vector3(-4.8f, 8.9f, 0f));
         ConfigureForestScout(root, sprite, new Vector3(-6.45f, 8.25f, 0f));
         ConfigureSimpleInteractable(root, "Forest Gate Sign", sprite, new Vector3(2.5f, 9.25f, 0f), new Vector3(1.1f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Forest Gate Sign", "Read", new[]

@@ -287,6 +287,14 @@ public class PlayerInteractionController : MonoBehaviour
 
         for (int i = 0; i < interactables.Length; i++)
         {
+            if (interactables[i] is ScenePortalInteractable)
+            {
+                return interactables[i];
+            }
+        }
+
+        for (int i = 0; i < interactables.Length; i++)
+        {
             if (interactables[i] is ZoneGateInteractable)
             {
                 return interactables[i];

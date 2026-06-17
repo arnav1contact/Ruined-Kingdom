@@ -91,6 +91,8 @@ public class CharacterCreationController : MonoBehaviour
             return;
         }
 
+        HandleCreationKeyboardShortcuts();
+
         InitializeStyles();
 
         float panelWidth = Mathf.Min(760f, Screen.width - 32f);
@@ -134,6 +136,42 @@ public class CharacterCreationController : MonoBehaviour
         if (GUI.Button(beginRect, "Begin"))
         {
             ConfirmCharacter();
+        }
+
+        GUI.Label(new Rect(panelRect.x + 24f, panelRect.yMax - 52f, panelRect.width - 280f, 34f), "Enter begins. Left/Right changes class. Up/Down changes element.", labelStyle);
+    }
+
+    void HandleCreationKeyboardShortcuts()
+    {
+        Event currentEvent = Event.current;
+        if (currentEvent == null || currentEvent.type != EventType.KeyDown)
+        {
+            return;
+        }
+
+        switch (currentEvent.keyCode)
+        {
+            case KeyCode.Return:
+            case KeyCode.KeypadEnter:
+                ConfirmCharacter();
+                currentEvent.Use();
+                break;
+            case KeyCode.LeftArrow:
+                classIndex = WrapIndex(classIndex - 1, System.Enum.GetValues(typeof(CharacterClass)).Length);
+                currentEvent.Use();
+                break;
+            case KeyCode.RightArrow:
+                classIndex = WrapIndex(classIndex + 1, System.Enum.GetValues(typeof(CharacterClass)).Length);
+                currentEvent.Use();
+                break;
+            case KeyCode.UpArrow:
+                elementIndex = WrapIndex(elementIndex - 1, System.Enum.GetValues(typeof(CharacterElement)).Length);
+                currentEvent.Use();
+                break;
+            case KeyCode.DownArrow:
+                elementIndex = WrapIndex(elementIndex + 1, System.Enum.GetValues(typeof(CharacterElement)).Length);
+                currentEvent.Use();
+                break;
         }
     }
 
