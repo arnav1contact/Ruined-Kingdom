@@ -21,6 +21,14 @@ public static class MovementPrototypeSceneBuilder
         CreateKingdomScene();
         CreateForestScene();
         ConfigureBuildSettings();
+        AssetDatabase.Refresh();
+        AssetDatabase.SaveAssets();
+
+        if (!File.Exists(KingdomScenePath) || !File.Exists(ForestScenePath))
+        {
+            throw new IOException($"Scene generation failed. Expected {KingdomScenePath} and {ForestScenePath} to exist.");
+        }
+
         EditorSceneManager.OpenScene(KingdomScenePath);
     }
 
@@ -29,9 +37,36 @@ public static class MovementPrototypeSceneBuilder
     [MenuItem("Ruined Kingdom/Prepare Full Playtest")]
     public static void PrepareFullPlaytest()
     {
-        ResetPrototypeProgress();
-        CreatePrototypeSceneSet();
-        Debug.Log("Ruined Kingdom full playtest prepared. Press Play from Assets/Scenes/Kingdom.unity.");
+        try
+        {
+            EditorUtility.DisplayProgressBar("Ruined Kingdom", "Resetting prototype progress...", 0.1f);
+            ResetPrototypeProgress();
+
+            EditorUtility.DisplayProgressBar("Ruined Kingdom", "Generating Kingdom and Forest scenes...", 0.35f);
+            CreatePrototypeSceneSet();
+
+            EditorUtility.DisplayProgressBar("Ruined Kingdom", "Opening Kingdom start scene...", 0.85f);
+            EditorSceneManager.OpenScene(KingdomScenePath);
+            Selection.activeObject = AssetDatabase.LoadAssetAtPath<SceneAsset>(KingdomScenePath);
+
+            Debug.Log($"Ruined Kingdom full playtest prepared. Active scene: {SceneManager.GetActiveScene().path}");
+            EditorUtility.DisplayDialog(
+                "Ruined Kingdom",
+                "Full playtest is ready. Kingdom.unity is open now. Press Play.",
+                "OK");
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogException(exception);
+            EditorUtility.DisplayDialog(
+                "Ruined Kingdom Playtest Prep Failed",
+                exception.Message,
+                "OK");
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+        }
     }
 
     [MenuItem("Ruined Kingdom/Open Kingdom Start Scene")]
@@ -69,7 +104,11 @@ public static class MovementPrototypeSceneBuilder
         ConfigureCharacterCreationForScene(player, root);
 
         EnsureScenesFolder();
-        EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), KingdomScenePath);
+        if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), KingdomScenePath))
+        {
+            throw new IOException($"Unity failed to save {KingdomScenePath}.");
+        }
+
         ConfigureBuildSettings();
         Selection.activeGameObject = player;
     }
@@ -94,7 +133,11 @@ public static class MovementPrototypeSceneBuilder
         ConfigureSceneSpawnFallback("Forest Entry Spawn", player.transform);
 
         EnsureScenesFolder();
-        EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ForestScenePath);
+        if (!EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ForestScenePath))
+        {
+            throw new IOException($"Unity failed to save {ForestScenePath}.");
+        }
+
         ConfigureBuildSettings();
         Selection.activeGameObject = player;
     }
