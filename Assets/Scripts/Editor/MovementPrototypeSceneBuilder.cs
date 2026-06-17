@@ -938,6 +938,8 @@ public static class MovementPrototypeSceneBuilder
         GameObject entranceMarker = ConfigureSimpleInteractable(parent, "Lost Woods Entrance", sprite, entrancePosition, new Vector3(2.1f, 1.35f, 1f), new Color(0.08f, 0.18f, 0.08f), "Lost Woods", "Enter Dungeon", new[] { "Enter the shifting woods." }, false);
         LostWoodsEntranceInteractable entrance = GetOrAddComponent<LostWoodsEntranceInteractable>(entranceMarker);
 
+        GameObject exitGate = ConfigureSimpleInteractable(dungeon.transform, "Leave Lost Woods", sprite, new Vector3(0f, -3.75f, 0f), new Vector3(2f, 0.75f, 1f), new Color(0.2f, 0.14f, 0.08f), "Forest Clearing", "Leave Dungeon", null, false);
+        LostWoodsExitInteractable exit = GetOrAddComponent<LostWoodsExitInteractable>(exitGate);
         GameObject leftGate = ConfigureSimpleInteractable(dungeon.transform, "Left Woods Path", sprite, new Vector3(-3.3f, 2.8f, 0f), new Vector3(1.05f, 1f, 1f), new Color(0.04f, 0.2f, 0.08f), "Left Path", "Choose Left", null, true);
         GameObject rightGate = ConfigureSimpleInteractable(dungeon.transform, "Right Woods Path", sprite, new Vector3(3.3f, 2.8f, 0f), new Vector3(1.05f, 1f, 1f), new Color(0.04f, 0.2f, 0.08f), "Right Path", "Choose Right", null, true);
 
@@ -987,6 +989,12 @@ public static class MovementPrototypeSceneBuilder
         SetSerializedStringIfPresent(entranceObject, "promptText", "Enter");
         entranceObject.FindProperty("dungeon").objectReferenceValue = controller;
         entranceObject.ApplyModifiedProperties();
+
+        SerializedObject exitObject = new SerializedObject(exit);
+        SetSerializedStringIfPresent(exitObject, "displayName", "Forest Clearing");
+        SetSerializedStringIfPresent(exitObject, "promptText", "Leave Dungeon");
+        exitObject.FindProperty("dungeon").objectReferenceValue = controller;
+        exitObject.ApplyModifiedProperties();
 
         ConfigureLostWoodsGate(leftGate, controller, true);
         ConfigureLostWoodsGate(rightGate, controller, false);

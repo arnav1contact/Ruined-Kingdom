@@ -881,6 +881,31 @@ public class LostWoodsGateInteractable : SimpleInteractable
 }
 
 [DisallowMultipleComponent]
+public class LostWoodsExitInteractable : SimpleInteractable
+{
+    [SerializeField] LostWoodsDungeonController dungeon = null;
+
+    public override void Interact(PlayerInteractionController player)
+    {
+        dungeon?.LeaveDungeon(player);
+    }
+
+    void OnTriggerStay2D(Collider2D other)
+    {
+        if (!WasInteractPressedThisFrame())
+        {
+            return;
+        }
+
+        PlayerInteractionController player = other.GetComponent<PlayerInteractionController>();
+        if (player != null)
+        {
+            Interact(player);
+        }
+    }
+}
+
+[DisallowMultipleComponent]
 public class LostWoodsDungeonController : MonoBehaviour
 {
     [SerializeField] Transform playerSpawn = null;
@@ -895,12 +920,16 @@ public class LostWoodsDungeonController : MonoBehaviour
     [SerializeField] bool leftIsCorrect;
     [SerializeField] string currentHint = "The woods are quiet.";
     [SerializeField] string currentRoomType = "Quiet";
+    [SerializeField] int activeEnemiesRemaining;
+    [SerializeField] bool roomStarted;
 
     GUIStyle hudStyle;
+    readonly List<HealthComponent> subscribedEnemyHealth = new List<HealthComponent>();
 
     public void Begin(PlayerInteractionController player)
     {
         currentDepth = 0;
+        roomStarted = true;
         RegenerateRoom(player);
         MovePlayerToRoom(player);
         ToastHudController.Show("Entered the Lost Woods");
@@ -908,6 +937,16 @@ public class LostWoodsDungeonController : MonoBehaviour
 
     public void ChoosePath(PlayerInteractionController player, bool choseLeft)
     {
+        if (activeEnemiesRemaining > 0)
+        {
+            player?.ShowDialogue("Lost Woods", new[]
+            {
+                "The paths twist shut while enemies are nearby.",
+                $"Defeat {activeEnemiesRemaining} forest foe{(activeEnemiesRemaining == 1 ? "" : "s")} first."
+            });
+            return;
+        }
+
         if (choseLeft == leftIsCorrect)
         {
             currentDepth++;
@@ -915,6 +954,9 @@ public class LostWoodsDungeonController : MonoBehaviour
             {
                 RewardClear(player);
                 currentDepth = 0;
+                roomStarted = false;
+                ClearActiveRoom();
+                return;
             }
             else
             {
@@ -929,6 +971,15 @@ public class LostWoodsDungeonController : MonoBehaviour
 
         RegenerateRoom(player);
         MovePlayerToRoom(player);
+    }
+
+    public void LeaveDungeon(PlayerInteractionController player)
+    {
+        currentDepth = 0;
+        roomStarted = false;
+        ClearActiveRoom();
+        MovePlayerToCompletion(player);
+        ToastHudController.Show("Left the Lost Woods");
     }
 
     void RewardClear(PlayerInteractionController player)
@@ -978,6 +1029,7 @@ public class LostWoodsDungeonController : MonoBehaviour
 
     void RegenerateRoom(PlayerInteractionController player)
     {
+        UnsubscribeEnemyHealth();
         leftIsCorrect = Random.value > 0.5f;
         currentHint = leftIsCorrect ? "The moss leans left." : "The wind pulls right.";
 
@@ -995,6 +1047,31 @@ public class LostWoodsDungeonController : MonoBehaviour
         RandomizeProps(chests, currentRoomType == "Chest" || Random.value > 0.72f ? 1 : 0, new Vector2(-3.7f, 3.7f), new Vector2(-1.7f, 2.35f));
         RandomizeEnemies(player == null ? null : player.transform, currentRoomType == "Enemy");
         ToastHudController.Show($"Lost Woods: {currentRoomType}");
+    }
+
+    void ClearActiveRoom()
+    {
+        UnsubscribeEnemyHealth();
+        activeEnemiesRemaining = 0;
+        SetObjectsActive(treeProps, false);
+        SetObjectsActive(chests, false);
+        SetObjectsActive(enemies, false);
+    }
+
+    void SetObjectsActive(GameObject[] objects, bool active)
+    {
+        if (objects == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < objects.Length; i++)
+        {
+            if (objects[i] != null)
+            {
+                objects[i].SetActive(active);
+            }
+        }
     }
 
     void RandomizeProps(GameObject[] props, int activeCount, Vector2 xRange, Vector2 yRange)
@@ -1021,10 +1098,12 @@ public class LostWoodsDungeonController : MonoBehaviour
     {
         if (enemies == null)
         {
+            activeEnemiesRemaining = 0;
             return;
         }
 
         int activeCount = forceEnemies ? Mathf.Clamp(1 + currentDepth / 2 + Random.Range(0, 2), 1, enemies.Length) : Random.value > 0.65f ? 1 : 0;
+        activeEnemiesRemaining = activeCount;
         for (int i = 0; i < enemies.Length; i++)
         {
             bool active = i < activeCount;
@@ -1037,7 +1116,12 @@ public class LostWoodsDungeonController : MonoBehaviour
             enemies[i].transform.localPosition = new Vector3(Random.Range(-3.9f, 3.9f), Random.Range(-1.7f, 2.35f), 0f);
 
             HealthComponent health = enemies[i].GetComponent<HealthComponent>();
-            health?.Refill();
+            if (health != null)
+            {
+                health.Refill();
+                health.Emptied += OnRoomEnemyEmptied;
+                subscribedEnemyHealth.Add(health);
+            }
 
             EnemyCombatController enemy = enemies[i].GetComponent<EnemyCombatController>();
             if (enemy != null && player != null)
@@ -1045,6 +1129,39 @@ public class LostWoodsDungeonController : MonoBehaviour
                 enemy.SetTarget(player);
             }
         }
+    }
+
+    void OnRoomEnemyEmptied(HealthComponent health)
+    {
+        activeEnemiesRemaining = Mathf.Max(0, activeEnemiesRemaining - 1);
+        if (health != null)
+        {
+            health.Emptied -= OnRoomEnemyEmptied;
+            subscribedEnemyHealth.Remove(health);
+        }
+
+        if (activeEnemiesRemaining <= 0 && roomStarted)
+        {
+            ToastHudController.Show("The forest paths open");
+        }
+    }
+
+    void UnsubscribeEnemyHealth()
+    {
+        for (int i = 0; i < subscribedEnemyHealth.Count; i++)
+        {
+            if (subscribedEnemyHealth[i] != null)
+            {
+                subscribedEnemyHealth[i].Emptied -= OnRoomEnemyEmptied;
+            }
+        }
+
+        subscribedEnemyHealth.Clear();
+    }
+
+    void OnDisable()
+    {
+        UnsubscribeEnemyHealth();
     }
 
     void MovePlayerToCompletion(PlayerInteractionController player)
@@ -1069,7 +1186,7 @@ public class LostWoodsDungeonController : MonoBehaviour
 
     void OnGUI()
     {
-        if (currentDepth <= 0 && !IsPlayerNearDungeon())
+        if (!roomStarted && currentDepth <= 0 && !IsPlayerNearDungeon())
         {
             return;
         }
@@ -1082,7 +1199,8 @@ public class LostWoodsDungeonController : MonoBehaviour
             normal = { textColor = Color.white }
         };
 
-        GUI.Box(new Rect(18f, 204f, 280f, 74f), $"Lost Woods Depth: {currentDepth}/{targetDepth}\nRoom: {currentRoomType}\nHint: {currentHint}", hudStyle);
+        string objective = activeEnemiesRemaining > 0 ? $"Defeat enemies: {activeEnemiesRemaining}" : "Choose left or right";
+        GUI.Box(new Rect(18f, 204f, 310f, 96f), $"Lost Woods Depth: {currentDepth}/{targetDepth}\nRoom: {currentRoomType}\nHint: {currentHint}\nObjective: {objective}", hudStyle);
     }
 
     bool IsPlayerNearDungeon()
