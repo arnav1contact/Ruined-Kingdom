@@ -41,6 +41,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureCamera(player.transform);
         ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
         ConfigureKingdomScene(root.transform, tileSprite, player);
+        ConfigureSceneSpawnFallback("Kingdom Player Spawn", player.transform);
         ConfigureCharacterCreationForScene(player, root);
 
         EnsureScenesFolder();
@@ -66,6 +67,7 @@ public static class MovementPrototypeSceneBuilder
         ConfigureCamera(player.transform);
         ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
         ConfigureForestScene(root.transform, tileSprite, player);
+        ConfigureSceneSpawnFallback("Forest Entry Spawn", player.transform);
 
         EnsureScenesFolder();
         EditorSceneManager.SaveScene(SceneManager.GetActiveScene(), ForestScenePath);
@@ -77,27 +79,6 @@ public static class MovementPrototypeSceneBuilder
     public static void CreateMovementTestRoom()
     {
         CreatePrototypeSceneSet();
-        return;
-
-#pragma warning disable CS0162
-        CleanupObsoletePrototypeObjects();
-
-        InputActionReference moveReference = GetOrCreateMoveActionReference();
-        InputActionReference attackReference = GetOrCreateInputActionReference("Player/Attack", AttackReferencePath);
-        Sprite playerSprite = AssetDatabase.LoadAssetAtPath<Sprite>(PlayerSpritePath);
-        Sprite tileSprite = AssetDatabase.LoadAssetAtPath<Sprite>(TileSpritePath);
-
-        GameObject roomRoot = GetOrCreateGameObject("Movement Test Room", Vector3.zero);
-        GameObject player = ConfigurePlayer(playerSprite, moveReference, attackReference);
-        ConfigureCamera(player.transform);
-        ConfigureDebugOverlay(player.GetComponent<PlayerMovementController>());
-        ConfigureFloor(roomRoot.transform, tileSprite);
-        ConfigureWalls(roomRoot.transform, tileSprite);
-        ConfigureHubAdventureScaffold(roomRoot.transform, tileSprite, player);
-
-        Selection.activeGameObject = player;
-        EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-#pragma warning restore CS0162
     }
 
     static GameObject ConfigurePlayer(Sprite playerSprite, InputActionReference moveReference, InputActionReference attackReference)
@@ -250,6 +231,16 @@ public static class MovementPrototypeSceneBuilder
         interactionObject.ApplyModifiedProperties();
     }
 
+    static void ConfigureSceneSpawnFallback(string spawnPointName, Transform player)
+    {
+        GameObject systems = GetOrCreateGameObject("Ruined Kingdom Runtime Systems", Vector3.zero);
+        SceneSpawnResolver spawnResolver = GetOrAddComponent<SceneSpawnResolver>(systems);
+        SerializedObject spawnResolverObject = new SerializedObject(spawnResolver);
+        spawnResolverObject.FindProperty("player").objectReferenceValue = player;
+        spawnResolverObject.FindProperty("fallbackSpawnPointName").stringValue = spawnPointName;
+        spawnResolverObject.ApplyModifiedProperties();
+    }
+
     static void ConfigureKingdomScene(Transform root, Sprite sprite, GameObject player)
     {
         ConfigureSpawn(root, "Kingdom Player Spawn", new Vector3(0f, -2.2f, 0f));
@@ -282,6 +273,11 @@ public static class MovementPrototypeSceneBuilder
         ConfigureTrainingDummy(root, sprite, new Vector3(6.15f, -1.95f, 0f));
 
         ConfigureScenePortal(root, "Forest Scene Portal", sprite, new Vector3(0f, 10.1f, 0f), new Vector3(3f, 1.4f, 1f), "Forest Gate", "Enter Forest", "Forest", "Forest Entry Spawn", "Enter the forest?", "Leave the kingdom and travel to the forest.");
+        ConfigureSimpleInteractable(root, "Forest Gate Sign", sprite, new Vector3(2.5f, 9.25f, 0f), new Vector3(1.1f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Forest Gate Sign", "Read", new[]
+        {
+            "Forest Gate",
+            "Use the gold marker to choose whether to enter the Forest scene."
+        }, true);
         ConfigureSimpleInteractable(root, "Kingdom Guard", sprite, new Vector3(-2.4f, 8.7f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.35f, 0.45f, 0.85f), "Gate Guard", "Talk", new[]
         {
             "The forest is a separate scene now. Use the gold gate marker north of town.",
@@ -313,6 +309,11 @@ public static class MovementPrototypeSceneBuilder
         }
 
         ConfigureScenePortal(root, "Kingdom Return Portal", sprite, new Vector3(0f, -7.1f, 0f), new Vector3(3f, 1.25f, 1f), "Kingdom Road", "Return to Kingdom", "Kingdom", "Kingdom Player Spawn", "Return to kingdom?", "Leave the forest and return to the kingdom.");
+        ConfigureSimpleInteractable(root, "Forest Return Sign", sprite, new Vector3(2.5f, -6.35f, 0f), new Vector3(1.15f, 0.7f, 1f), new Color(0.26f, 0.16f, 0.08f), "Kingdom Road Sign", "Read", new[]
+        {
+            "Kingdom Road",
+            "Use the gold marker to return to the Kingdom scene."
+        }, true);
 
         ConfigureSimpleInteractable(root, "Forest Ranger", sprite, new Vector3(-3.4f, -4.2f, 0f), new Vector3(0.65f, 1f, 1f), new Color(0.36f, 0.72f, 0.28f), "Forest Ranger", "Talk", new[]
         {
@@ -320,12 +321,21 @@ public static class MovementPrototypeSceneBuilder
             "Walk north to the dark marker in the clearing to start the Lost Woods minigame."
         }, true);
 
+        ConfigureProp(root, "Old Forest Stump", sprite, new Vector3(-2.4f, 4.6f, 0f), new Vector3(1.15f, 0.65f, 1f), new Color(0.24f, 0.13f, 0.05f));
+        ConfigureProp(root, "Life Moss Patch", sprite, new Vector3(2.4f, 4.1f, 0f), new Vector3(1.6f, 0.55f, 1f), new Color(0.2f, 0.72f, 0.25f));
+
         GameObject chest = ConfigureSimpleInteractable(root, "Forest Entry Chest", sprite, new Vector3(3.6f, -3.9f, 0f), new Vector3(0.75f, 0.55f, 1f), new Color(0.45f, 0.25f, 0.1f), "Forest Chest", "Open", null, true);
         ForestLootChestInteractable forestChest = GetOrAddComponent<ForestLootChestInteractable>(chest);
         SerializedObject chestObject = new SerializedObject(forestChest);
         SetSerializedStringIfPresent(chestObject, "displayName", "Forest Chest");
         SetSerializedStringIfPresent(chestObject, "promptText", "Open");
         chestObject.ApplyModifiedProperties();
+
+        ConfigureSimpleInteractable(root, "Lost Woods Sign", sprite, new Vector3(2.65f, 6.15f, 0f), new Vector3(1.2f, 0.7f, 1f), new Color(0.22f, 0.12f, 0.06f), "Lost Woods Sign", "Read", new[]
+        {
+            "Lost Woods",
+            "Use the dark marker in the clearing to enter the generated minigame."
+        }, true);
 
         ConfigureLostWoodsDungeon(root, sprite, player.transform, new Vector3(0f, 24f, 0f), new Vector3(0f, 6.4f, 0f));
     }
@@ -798,10 +808,16 @@ public static class MovementPrototypeSceneBuilder
     static void ConfigureBuilding(Transform parent, Sprite sprite, string name, Vector3 exteriorPosition, Vector3 exteriorScale, Color color, Vector3 interiorCenter, Transform hubSpawn, CameraAreaBounds2D hubBounds, string prompt, System.Type interiorNpcType, string npcName)
     {
         ConfigureSceneryBlock(parent, $"{name} Exterior", sprite, exteriorPosition, exteriorScale, color);
+        ConfigureSceneryBlock(parent, $"{name} Roof", sprite, exteriorPosition + new Vector3(0f, exteriorScale.y * 0.42f, 0f), new Vector3(exteriorScale.x * 1.12f, 0.45f, 1f), Color.Lerp(color, Color.black, 0.22f));
         Transform interiorSpawn = ConfigureSpawn(parent, $"{name} Interior Spawn", interiorCenter + new Vector3(0f, -1.25f, 0f));
         CameraAreaBounds2D interiorBounds = ConfigureAreaBounds(parent, $"{name} Camera Bounds", new Vector2(interiorCenter.x - 4f, interiorCenter.y - 3f), new Vector2(interiorCenter.x + 4f, interiorCenter.y + 3f));
 
         ConfigureGate(parent, $"{name} Door", sprite, exteriorPosition + new Vector3(0f, -exteriorScale.y * 0.55f, 0f), interiorSpawn, interiorBounds, name, prompt, $"Entered {name}.");
+        ConfigureSimpleInteractable(parent, $"{name} Sign", sprite, exteriorPosition + new Vector3(0f, -exteriorScale.y * 0.98f, 0f), new Vector3(1.15f, 0.42f, 1f), new Color(0.22f, 0.14f, 0.08f), $"{name} Sign", "Read", new[]
+        {
+            name,
+            $"Use the gold door marker to {prompt.ToLowerInvariant()}."
+        }, true);
 
         ConfigureGroundPatch(parent, $"{name} Interior Floor", sprite, interiorCenter, new Vector3(7f, 4.4f, 1f), new Color(0.27f, 0.24f, 0.2f));
         ConfigureWall(parent, $"{name} Interior North Wall", sprite, interiorCenter + new Vector3(0f, 2.45f, 0f), new Vector3(7.4f, 0.4f, 1f));
